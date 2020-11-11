@@ -1,0 +1,219 @@
+---
+title: "Cleaning the data"
+author: "Rena Cohen"
+date: "11/10/2020"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(readr)
+library(janitor)
+library(readxl)
+```
+
+```{r}
+# Here is the initial NYT dataset
+
+masks <- read_csv("raw_data_masks/mask-use-by-county.csv") %>%
+  
+  # changing column names to lowercase
+  
+  janitor::clean_names() %>%
+  mutate(countyfp = as.character(countyfp))
+
+# Here is population data
+
+pop <- read_csv("raw_data_masks/PopulationEstimates(1).csv") %>%
+  
+  # Relevant variables are county code, state, rural urban continuum, and population
+  
+  select("FIPStxt", "State", "Rural-urban_Continuum Code_2013", "POP_ESTIMATE_2019") %>%
+  rename("countyfp" = "FIPStxt", "state" = "State", "ru_continuum" = "Rural-urban_Continuum Code_2013", "pop_2019" = "POP_ESTIMATE_2019") %>%
+  mutate(countyfp = ifelse(nchar(countyfp) == 4, paste0("0", countyfp), countyfp)) %>%
+  mutate(countyfp = as.character(countyfp))
+
+
+
+# Moving on to education data
+
+education <- read_csv("raw_data_masks/Education.csv") %>%
+  select("FIPS Code", "Percent of adults with less than a high school diploma, 2014-18",
+         "Percent of adults with a high school diploma only, 2014-18", 
+         "Percent of adults completing some college or associate's degree, 2014-18", 
+         "Percent of adults with a bachelor's degree or higher, 2014-18") %>%
+  rename("countyfp" = "FIPS Code",
+         "pct_less_than_hs" = "Percent of adults with less than a high school diploma, 2014-18",
+         "pct_hs" = "Percent of adults with a high school diploma only, 2014-18",
+         "pct_some_college" = "Percent of adults completing some college or associate's degree, 2014-18",
+         "pct_college" = "Percent of adults with a bachelor's degree or higher, 2014-18")  %>%
+  mutate(countyfp = as.character(countyfp)) %>%
+  mutate(countyfp = ifelse(nchar(countyfp) == 4, paste0("0", countyfp), countyfp))
+  
+
+# 2020 Presidential elections
+
+voting <- read_csv("raw_data_masks/2020_US_County_Level_Presidential_Results.csv") %>%
+  select(county_fips, county_name, per_gop) %>%
+  rename("countyfp" = "county_fips", "percent_gop" = "per_gop") %>%
+  mutate(countyfp = as.character(countyfp))
+
+# Mask mandates
+
+mask_mandates <- read_excel("raw_data_masks/earliestpolicy_08042020.xlsx") %>%
+  select("1067", "...5") %>%
+  rename("county" = "1067", "mandate" = "...5") %>%
+  
+  # adding leading 0's to county codes without them, since excel got rid of them
+  
+  mutate(countyfp = ifelse(nchar(county) == 4, paste0("0", county), county)) %>%
+  
+  # creating a dummy variable coded 1 if there is a county mandate
+  
+  mutate(county_mandate = ifelse(is.na(mandate), 0, 1)) %>%
+  select(county_mandate, countyfp) %>%
+  mutate(countyfp = as.character(countyfp))
+
+# NYT Covid data
+
+covid <- read_csv("raw_data_masks/us-counties.csv") %>%
+
+# I'm going to select the row with the number of cases and deaths at the beginning of 
+# the NYT mask survey, which was July 2nd
+  
+  filter(date == "2020-07-02") %>%
+  select(fips, cases, deaths, county) %>%
+  rename("countyfp" = fips) %>%
+  mutate(countyfp = as.character(countyfp))
+
+# Poverty rate data
+
+poverty <- read_csv("raw_data_masks/PovertyEstimates.csv") %>%
+  select("FIPStxt", "PCTPOVALL_2018") %>%
+  rename("countyfp" = "FIPStxt", "pct_poverty" = "PCTPOVALL_2018") %>%
+  mutate(countyfp = as.character(countyfp)) %>%
+  mutate(countyfp = ifelse(nchar(countyfp) == 4, paste0("0", countyfp), countyfp))
+  
+# Population raw data 
+
+older_people <-  read_csv("raw_data_masks/cc-est2019-alldata-2.csv") %>%
+  janitor::clean_names() %>%
+  
+  # Feature engineering to get the FIPS code by combining state and county
+  
+  unite("countyfp", state:county, sep = "") %>%
+  
+  # We want only the most recent data (year = 12) 
+  
+  filter(year == 12) %>%
+  
+  group_by(countyfp) %>%
+  
+# We want the proportion of the population 65 and older. These are coded with age group
+# 14 or above
+  
+  filter(agegrp > 13) %>%
+  summarise(older_people = sum(tot_pop)) %>%
+  mutate(countyfp = as.character(countyfp))
+
+total_pop <-  read_csv("raw_data_masks/cc-est2019-alldata-2.csv") %>%
+  janitor::clean_names() %>%
+  
+  # Feature engineering to get the FIPS code by combining state and county
+  
+  unite("countyfp", state:county, sep = "") %>%
+  
+  # We want only the most recent data (year = 12) 
+  
+  filter(year == 12) %>%
+  
+  group_by(countyfp) %>%
+  
+  # Age group 0 represents characteristics of the population at large
+  
+  filter(agegrp == 0) %>%
+
+# Making race and gender into percentages rather than raw counts
+  mutate(pct_female = tot_female/tot_pop) %>%
+  mutate(pct_black = (ba_male + ba_female)/tot_pop) %>%
+  mutate(pct_native = (ia_male + ia_female)/tot_pop) %>%
+  mutate(pct_asian = (aa_male + aa_female)/tot_pop) %>%
+  mutate(pct_hispanic = (h_male + h_female)/tot_pop) %>%
+  select(countyfp, pct_female, pct_black, tot_pop, pct_native, pct_asian, pct_hispanic) %>%
+  mutate(countyfp = as.character(countyfp))
+
+all_pop <- inner_join(older_people, total_pop, by = "countyfp") %>%
+  mutate(pct_seniors = older_people/tot_pop) %>%
+  select(-older_people)
+
+
+```
+
+```{r}
+# Time for the big join!! Let's hope it works
+
+# Since the nyt dataset has our y variables, I will left join with the 
+# county codes in that
+
+# Countyfp has to be the same type of column in everything. I'll make it a 
+# character
+
+join_1 <- left_join(x = masks, y = pop, by = "countyfp")
+join_2 <- left_join(x = join_1, y = education, by = "countyfp")
+join_3 <- left_join(x = join_2, y = voting, by = "countyfp")
+join_4 <- left_join(x = join_3, y = mask_mandates, by = "countyfp")
+join_5 <- left_join(x = join_4, y = covid, by = "countyfp")
+join_6 <- left_join(x = join_5, y = poverty, by = "countyfp")
+join_7 <- left_join(x = join_6, y = all_pop, by = "countyfp")
+
+# Finally, just cleaning up our last join a little bit
+
+states_mandate = c("CA", "CT", "DE", "DC", "HI",
+                   "IL", "KS", "LA", "ME", "MA",
+                   "MD", "MI", "NV", "NJ", "NM",
+                   "NY", "NC", "OH", "OR", "PA", 
+                   "RI", "VA", "WA", "WV")
+
+states_dem_gov = c("CA", "CO", "CT", "DE", "HI",
+                   "IL", "KS", "KY", "LA", "ME",
+                   "MI", "MN", "MT", "NV", "NJ",
+                   "NM", "NY", "NC", "OR", "PA",
+                   "RI", "VA", "WA", "WI")
+
+clean_data = join_7 %>%
+  select(-county) %>%
+  
+  # adding a column for state mask mandates
+  
+  mutate(state_mandate = ifelse(state %in% states_mandate, 1, 0)) %>%
+  
+  # adding a column for governor political party (coded 1 if democrat)
+  
+  mutate(dem_governor = ifelse(state %in% states_dem_gov, 1, 0)) %>%
+  
+  rename("pct_trump" = "percent_gop") %>%
+  
+  # reordering the columns for ease of working with
+  
+  select(countyfp, county_name, state, everything())
+
+saveRDS(clean_data, file = "clean_data.rds")
+
+data <- readRDS("clean_data.rds")
+View(data)
+
+```
+
+
+```{r}
+
+
+  # adding a column for state mask mandates
+
+summary(lm(always~(.-countyfp - county_name - never -state - always - rarely - sometimes - tot_pop - frequently), data = clean_data))
+
+summary(lm(always~ru_continuum, data = clean_data))
+
+plot(never~log(cases), data = clean_data)
+```
+
