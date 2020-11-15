@@ -11,7 +11,7 @@ clean_data_2 = readRDS("clean_data_2.rds")
 
 ```
 
-
+### Exploratory Data Analysis
 
 ```{r Visualize Response Variable, out.width = '50%', out.height = '50%', echo = FALSE}
 
@@ -159,22 +159,25 @@ boxplot(pct_mask ~ state_mandate, data = clean_data_2,
         col = "cornflowerblue")
 
 ```
+Other variables that needed to be log transformed were `pct_seniors`, `pct_poverty`, and all individual race/ethnicity categories. `pct_hs` did not need to be log transformed, and `pct_female` looked skewed both with and without a transformation, so we left it untransformed.
 
-Other transformations: log(pct_seniors), log(pct_poverty)
-each ethnicity separately
-pct_hs leave alone
-%female is icky but let's leave it
+We also have some missing variables in our dataset which we will have to figure out how to impute.
+
+```{r NAs}
+
+sapply(clean_data_2, function(x) sum(is.na(x)))
+
+```
 
 
-had to do 1+log
-left out 2 education categories bc of colinearity
-removed trump2020 bc of colinearity
+### Baseline Models
 
-
-Thoughts: maybe %minority and %college
+In order to run the linear model, we had to change some of the transformations to `log(1+X)` so avoid taking the log of 0. Specifically, we had to do this for all 4 race/ethnicity variables and `pct_college`. We left out two of the education categories to `pct_less_than_hs` and `pct_some_college` to avoid multicolinearity, but moving forward, it might be best to create two a variables that sums `pct_college` and `pct_some_college`. We might consider doing the same thing with minority groups. Finally, we removed `pct_trump2020` from the model because the multicolinearity between that and the 2016 percent was inflating the standard errors.
 
 
 ```{r Full Model, no Interactions}
+
+interceptmodel = lm(pct_mask ~ 1, data = clean_data_2)
 
 fullmodel = lm(pct_mask ~ pop_2019 + ru_continuum + log(density) + pct_hs + log(1+pct_college) +
                log(pct_poverty) + pct_female + log(1+pct_black) + log(1+pct_native) + log(1+pct_hispanic) +
@@ -190,13 +193,10 @@ interactionmodel = lm(pct_mask ~ (pop_2019 + ru_continuum + log(density) + pct_h
                state_mandate + county_mandate)^2,
                data = clean_data_2)
 
-```
+selected_model = step(fullmodel, scope = list(lower = formula(interceptmodel), upper = formula(interactionmodel)), 
+     direction = "both", trace = 0)
 
-
-Things to think about: imputing data 
-```{r NAs}
-
-sapply(clean_data_2, function(x) sum(is.na(x)))
+summary(selected_model)
 
 ```
 
