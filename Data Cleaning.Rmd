@@ -195,12 +195,107 @@ clean_data = join_7 %>%
   
   # reordering the columns for ease of working with
   
-  select(countyfp, county_name, state, everything())
+  select(countyfp, county_name, state, everything()) %>%
+  
+  # Adding the weighted average column Kevin suggested
+  # 1 = always, 0.75 = frequently, 0.5 = sometimes, 0.25 = rarely, 0 = never
+  
+  mutate(pct_mask = always + 0.75*frequently + 0.5*sometimes + 
+           0.25*rarely)
 
 saveRDS(clean_data, file = "clean_data.rds")
+```
 
-data <- readRDS("clean_data.rds")
-View(data)
+
+```{r}
+# Here are more edits post Kevin
+
+# Grabbing the number of cases for two weeks after the end of the survey (2020_07_28)
+# Jk this data only goes up to July 27th, so I'll grab that instead
+
+
+covid_27 <- read_csv("raw_data_masks/us-counties.csv") %>%
+  filter(date == "2020-07-27") %>%
+  select(fips, cases, deaths) %>%
+  rename("countyfp" = fips, "cases_27" = cases, "deaths_27" = deaths) %>%
+  mutate(countyfp = as.character(countyfp))
+
+# I'm also going to select the dates that was when the survey ended, July 14th
+
+covid_14 <- read_csv("raw_data_masks/us-counties.csv") %>%
+
+# I'm going to select the row with the number of cases and deaths 2 weeks after the end of
+# the NYT mask survey, which was July 28th
+  
+  filter(date == "2020-07-14") %>%
+  select(fips, cases, deaths) %>%
+  rename("countyfp" = fips, "cases_14" = cases, "deaths_14" = deaths) %>%
+  mutate(countyfp = as.character(countyfp))
+
+
+# But I will add the 2016 county level election results in case we want
+# to use those instead of 2020
+
+voting_2016 <- read_csv("raw_data_masks/county_level_election.csv") %>%
+  select(fipscode,trump, density) %>%
+  rename("countyfp" = fipscode, "pct_trump_2016" = trump) %>%
+  mutate(countyfp = as.character(countyfp)) %>%
+  mutate(countyfp = ifelse(nchar(countyfp) == 4, paste0("0", countyfp), countyfp))
+  
+
+data_2 <- readRDS("clean_data.rds") %>%
+  # Adding the weighted average column Kevin suggested
+  # 1 = always, 0.75 = frequently, 0.5 = sometimes, 0.25 = rarely, 0 = never
+  
+  mutate(pct_mask = always + 0.75*frequently + 0.5*sometimes + 
+           0.25*rarely) %>%
+  rename("pct_trump_2020" = pct_trump, "cases_02" = cases, "deaths_02" = deaths)
+  
+# Rejoining with our new data
+
+join_8 <- left_join(x = data_2, y = covid_14, by = "countyfp")
+join_9 <- left_join(x = join_8, y = covid_27, by = "countyfp")
+join_10 <- left_join(x = join_9, y = voting_2016, by = "countyfp")
+
+View(join_10)
+
+clean_data_2 <- join_10 %>%
+  # Making growth rate columns for model spread growth of cases. case_growth_1 will be
+  # growth between the start and end of the survey, case_growth_2 is between the end of 
+  # the survey and the next two weeks
+  
+  mutate(case_growth_1 = cases_14/cases_02) %>%
+  mutate(case_growth_2 = cases_27/cases_14) %>%
+  
+  # Making sure all the percentages are on the same scale
+  # I will make them on the 100's scale, such that an increase of 
+  # 1 is equal to an increase of one percent
+  
+  mutate(pct_mask = 100*pct_mask) %>%
+  mutate(always = 100*always) %>%
+  mutate(frequently = 100*frequently) %>%
+  mutate(sometimes = 100*sometimes) %>%
+  mutate(rarely = 100*rarely) %>%
+  mutate(never = 100*never) %>%
+  mutate(case_growth_1 = 100*case_growth_1) %>%
+  mutate(case_growth2 = 100*case_growth_2) %>%
+  mutate(pct_female = 100*pct_female) %>%
+  mutate(pct_black = 100*pct_black) %>%
+  mutate(pct_native = 100*pct_native) %>%
+  mutate(pct_hispanic = 100*pct_hispanic) %>%
+  mutate(pct_asian = 100*pct_asian) %>%
+  mutate(pct_seniors = 100*pct_seniors) %>%
+  mutate(pct_trump_2020 = 100*pct_trump_2020) %>%
+  
+  # rearranging columns again
+  
+  select(countyfp, county_name, state, pct_mask, always, frequently,
+         sometimes, rarely, never, cases_02, deaths_02, cases_14, deaths_14,
+         cases_27, deaths_27, case_growth_1, case_growth_2, pop_2019, ru_continuum,
+         density, pct_less_than_hs, pct_hs, pct_some_college, pct_college, pct_poverty,
+         pct_female, pct_black, pct_native, pct_hispanic, pct_asian, pct_seniors, 
+         pct_trump_2016, pct_trump_2020, dem_governor, state_mandate, county_mandate) 
+
 
 ```
 
@@ -208,7 +303,7 @@ View(data)
 ```{r}
 
 
-  # adding a column for state mask mandates
+
 
 summary(lm(always~(.-countyfp - county_name - never -state - always - rarely - sometimes - tot_pop - frequently), data = clean_data))
 
