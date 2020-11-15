@@ -1,0 +1,137 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\hypersetup{
+  pdftitle={Variables and Data Description},
+  pdfauthor={Rena Cohen},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+\urlstyle{same} % disable monospaced font for URLs
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx,grffile}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{caption}
+\usepackage{longtable}
+
+\title{Variables and Data Description}
+\author{Rena Cohen}
+\date{11/15/2020}
+
+\begin{document}
+\maketitle
+
+Points to hit:
+
+\begin{itemize}
+\item
+  Our y variable comes from a NYT survey -explain how/where survey was
+  conducted, how we came up with our aggregate variable, possible
+  problems with it
+\item
+  Our x variables were compiled from a variety of sources, based both on
+  what we easily had access to at the count y level and what prior
+  research has shown about how different factors impact mask mandates
+  -This Gallup poll showed different mask usage by gender, political
+  party, education, and age, so those are all included in our analysis
+  (\url{https://news.gallup.com/poll/315590/americans-face-mask-usage-varies-greatly-demographics.aspx}).
+\end{itemize}
+
+\captionsetup[table]{labelformat=empty,skip=1pt}
+\begin{longtable}{llll}
+\caption*{
+\large \textbf{Variable Names and Descriptions}\\ 
+\small \\ 
+} \\ 
+\toprule
+Name & Description & Source & Source URL \\ 
+\midrule
+countyfp & County level FIPS (Federal Information Processing System) code. Unique for each American county. & New York Times & https://github.com/nytimes/covid-19-data/blob/master/mask-use/mask-use-by-county.csv \\ 
+county\_name & Name of the county & NA & NA \\ 
+state & state the county is located in & NA & NA \\ 
+pct\_mask & An aggregate variable representing the probability that a randomly selected person in a county will wear a mask. Calculated by 1*(always) + 0.75*(frequently)+0.5*(sometimes)+0.25*(rarely)+0*(never) & NA & NA \\ 
+always & Percentage of people  who answered they "always" wear a mask & New York Times & https://github.com/nytimes/covid-19-data/blob/master/mask-use/mask-use-by-county.csv \\ 
+frequently & Percentage of peoplewho answered they frequently wear a mask & New York Times & https://github.com/nytimes/covid-19-data/blob/master/mask-use/mask-use-by-county.csv \\ 
+sometimes & Percentage of people  who answered they sometimes wear a mask & New York Times & https://github.com/nytimes/covid-19-data/blob/master/mask-use/mask-use-by-county.csv \\ 
+rarely & Percentage of peoplewho answered they rarely wear a mask & New York Times & https://github.com/nytimes/covid-19-data/blob/master/mask-use/mask-use-by-county.csv \\ 
+never & Percentage of people who answered they never wear a mask & New York Times & https://github.com/nytimes/covid-19-data/blob/master/mask-use/mask-use-by-county.csv \\ 
+cases\_02 & Number of COVID-19 cases on 07/02/2020 & New York Times & https://github.com/nytimes/covid-19-data \\ 
+deaths\_02 & Number of COVID-19 deaths on 07/02/2020 & NA & https://github.com/nytimes/covid-19-data \\ 
+cases\_14 & Number of COVID-19 cases on 07/14/2020 & New York Times & https://github.com/nytimes/covid-19-data \\ 
+deaths\_14 & Number of COVID-19 deaths  on 07/14/2020 & NA & https://github.com/nytimes/covid-19-data \\ 
+cases\_27 & Number of COVID-19 cases on 07/27/2020 & New York Times & https://github.com/nytimes/covid-19-data \\ 
+deaths\_27 & Number of COVID-19 deaths  on 07/27/2020 & NA & https://github.com/nytimes/covid-19-data \\ 
+case\_growth\_1 & cases\_14/cases\_02 & NA & NA \\ 
+case\_growth\_2 & cases\_27/cases\_14 & NA & NA \\ 
+pop\_2019 & Population estimate in 2019 & United States Census Bureau & https://www.census.gov/newsroom/press-kits/2019/national-state-estimates.html \\ 
+ru\_continuum & 1 to 10 rating on the Rural-Urban Continuum & United States Census Bureau & https://www.census.gov/newsroom/press-kits/2019/national-state-estimates.html \\ 
+density & Population density of the county & county\_level\_election.csv from class & NA \\ 
+pct\_less\_than\_hs & Percent of adults with less than a high school diploma, 2014-18 & 2014-18 American Community Survey & https://www.ers.usda.gov/data-products/county-level-data-sets/download-data/ \\ 
+pct\_hs & Percent of adults with a high school diploma only, 2014-18 & 2014-18 American Community Survey & https://www.ers.usda.gov/data-products/county-level-data-sets/download-data/ \\ 
+pct\_some\_college & Percent of adults completing some college or associate's degree, 2014-18 & 2014-18 American Community Survey & https://www.ers.usda.gov/data-products/county-level-data-sets/download-data/ \\ 
+pct\_college & Percent of adults with a bachelor's degree or higher, 2014-18 & 2014-18 American Community Survey & https://www.ers.usda.gov/data-products/county-level-data-sets/download-data/ \\ 
+pct\_poverty & Percentage of people estimated to be living in poverty in 2018 & U.S. Census Bureau, Small Area Income and Poverty Estimates (SAIPE) Program & https://www.ers.usda.gov/data-products/county-level-data-sets/download-data/ \\ 
+pct\_female & Percentage of females in county, 2019 & U.S. Census Bureau & https://www.census.gov/newsroom/press-kits/2020/population-estimates-detailed.html \\ 
+pct\_black & Percentage of Black/African-American residents in county, 2019 & U.S. Census Bureau & https://www.census.gov/newsroom/press-kits/2020/population-estimates-detailed.html \\ 
+pct\_native & Percentage of American Indian or Alaskan Native people in county, 2019 & U.S. Census Bureau & https://www.census.gov/newsroom/press-kits/2020/population-estimates-detailed.html \\ 
+pct\_hispanic & Percentage of Hispanic people in county, 2019 & U.S. Census Bureau & https://www.census.gov/newsroom/press-kits/2020/population-estimates-detailed.html \\ 
+pct\_seniors & Percentage of adults 65 or over in county, 2019 & U.S. Census Bureau & https://www.census.gov/newsroom/press-kits/2020/population-estimates-detailed.html \\ 
+pct\_trump\_2016 & Percentage of county who voted for Donald Trump in 2016 & county\_level\_election.csv from class & NA \\ 
+pct\_trump\_2020 & Percentage of county who voted for Donald Trump in 2020 & Scraped by GitHub user tonmcg from Fox News, Politico, and New York Times & https://github.com/tonmcg/US\_County\_Level\_Election\_Results\_08-20 \\ 
+dem\_governor & Dummy variable coded 1 if the state has a Democratic governor & National Governor's Association & https://www.nga.org/wp-content/uploads/2019/07/Governors-Roster.pdf \\ 
+state\_mandate & Dummy variable coded 1 if a statewide mask mandate was enacted before 07/14/2020 & Axios & https://www.axios.com/states-face-coverings-mandatory-a0e2fe35-5b7b-458e-9d28-3f6cdb1032fb.html \\ 
+county\_mandate & Dummy variable coded 1 if there was a county-wide mask mandate enacted before -7/14/2020 & Harris Institute of Public Policy & https://www.austinlwright.com/covid-research \\ 
+\bottomrule
+\end{longtable}
+
+\end{document}

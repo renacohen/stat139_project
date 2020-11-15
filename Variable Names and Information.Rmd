@@ -2,13 +2,42 @@
 title: "Variables and Data Description"
 author: "Rena Cohen"
 date: "11/15/2020"
-output: html_document
+output:
+  html_document: default
+  pdf_document: default
 ---
 
-```{r}
+```{r include = F}
 library(gt)
-
-names(clean_data_2)
+library(tidyverse)
+library(readr)
+library(readxl)
+clean_data_2 <- readRDS("~/Desktop/STAT 139/stat139_project/clean_data_2.rds")
 
 ```
+
+Points to hit: 
+
+- Our y variable comes from a NYT survey
+  -explain how/where survey was conducted, how we came up with our aggregate variable, possible problems with it
+  
+- Our x variables were compiled from a variety of sources, based both on what we easily had access to at the count
+y level and what prior research has shown about how different factors impact mask mandates
+  - This Gallup poll showed different mask usage by gender, political party, education, and age, so those are all included in our analysis (https://news.gallup.com/poll/315590/americans-face-mask-usage-varies-greatly-demographics.aspx).
+  - This poll from the Pew Research center showed similar results, as well as variances based on race, so we included those percentages as well (https://www.pewresearch.org/fact-tank/2020/06/23/most-americans-say-they-regularly-wore-a-mask-in-stores-in-the-past-month-fewer-see-others-doing-it/)
+    - The choice to include race as a variable also stemmed from the numerous sources that show coronavirus dispproportionately impacting communities of color (https://www.cdc.gov/mmwr/volumes/69/wr/mm6933e1.htm)
+  - This recent paper indicated a difference in mask-wearing in stores between rural and urban areas (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7561164/), so we included population density and measurement on the rural-urban continuum as possible predictors
+- Finally, we wanted to determine whether coronavirus-related measures, including number of cases/deaths, growth rate of the virus at the time of the survey, and local/statewide mask mandates had impacts on people's behavior. 
+  
+
+```{r echo = F}
+Variable_Names <- read_excel("Variable Names.xlsx")
+
+Variable_Names %>%
+  gt() %>%
+  tab_header(title = md("**Variable Names and Descriptions**"))
+
+```
+
+
 
