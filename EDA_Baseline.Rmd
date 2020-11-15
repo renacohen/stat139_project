@@ -1,0 +1,205 @@
+---
+title: "EDA and Baseline Model"
+author: "Chloe Shawah and Rena Cohen"
+date: "11/15/2020"
+output: pdf_document
+---
+
+```{r Load data, echo = FALSE}
+
+clean_data_2 = readRDS("clean_data_2.rds")
+
+```
+
+
+
+```{r Visualize Response Variable, out.width = '50%', out.height = '50%', echo = FALSE}
+
+hist(clean_data_2$pct_mask,
+     main = "Histogram of Mask-Wearing Score",
+     xlab = "Mask-Wearing Score",
+     ylab = "Number of Counties",
+     col = "cornflowerblue")
+
+```
+```{r Density, out.width = '50%', out.height = '50%', echo = FALSE}
+
+hist(clean_data_2$density,
+     main = "Histogram of Density (untransformed)",
+     xlab = "Density",
+     ylab = "Number of Counties",
+     col = "cornflowerblue")
+
+hist(log(clean_data_2$density),
+     main = "Histogram of log(Density)",
+     xlab = "log(Density)",
+     ylab = "Number of Counties",
+     col = "cornflowerblue")
+
+plot(pct_mask ~ log(density), data = clean_data_2,
+        main = "Mask Wearing by log(Density)",
+        xlab = "log(Density)",
+        ylab = "Mask-Wearing Score",
+        col = "cornflowerblue")
+
+```
+
+
+```{r RU Score, out.width = '50%', out.height = '50%', echo = FALSE}
+
+hist(clean_data_2$ru_continuum,
+     breaks = 1:10,
+     ylim = c(0,900),
+     xlim = c(1,10),
+     main = "Histogram of Rural-Urban Continuum Score",
+     xlab = "RU Score",
+     ylab = "Number of Counties",
+     col = "cornflowerblue")
+
+boxplot(pct_mask ~ ru_continuum, data = clean_data_2,
+        main = "Mask Wearing by Rural-Urban Continuum Score",
+        xlab = "RU Score",
+        ylab = "Mask-Wearing Score",
+        col = "cornflowerblue")
+
+```
+
+
+```{r Percent College, out.width = '50%', out.height = '50%', echo = FALSE}
+
+hist(clean_data_2$pct_college,
+     main = "Histogram of Percent College Educated (untransformed)",
+     xlab = "Percent College",
+     ylab = "Number of Counties",
+     col = "cornflowerblue")
+
+hist(log(clean_data_2$pct_college),
+     main = "Histogram of log(College)",
+     xlab = "log(College)",
+     ylab = "Number of Counties",
+     col = "cornflowerblue")
+
+plot(pct_mask ~ log(pct_college), data = clean_data_2,
+        main = "Mask Wearing by log(College)",
+        xlab = "log(College)",
+        ylab = "Mask-Wearing Score",
+        col = "cornflowerblue")
+
+```
+
+
+```{r Trump 2016, out.width = '50%', out.height = '50%', echo = FALSE}
+
+hist(clean_data_2$pct_trump_2016,
+     main = "Histogram of Percent Voted for Trump 2016 (untransformed)",
+     xlab = "Percent Trump 2016",
+     ylab = "Number of Counties",
+     col = "cornflowerblue")
+
+hist(log(100-clean_data_2$pct_trump_2016),
+     main = "Histogram of log(100-Trump2016)",
+     xlab = "log(100-trump2016)",
+     ylab = "Number of Counties",
+     col = "cornflowerblue")
+
+plot(pct_mask ~ log(100-clean_data_2$pct_trump_2016), data = clean_data_2,
+        main = "Mask Wearing by log(100-Trump2016)",
+        xlab = "log(100-trump2016)",
+        ylab = "Mask-Wearing Score",
+        col = "cornflowerblue")
+
+```
+
+
+```{r, out.width = '50%', out.height = '50%', echo = FALSE}
+
+hist((clean_data_2$pct_black + clean_data_2$pct_native + clean_data_2$pct_hispanic),
+     main = "Histogram of Percent Minority (black, hispanic, native) (untransformed)",
+     xlab = "Percent Minority",
+     ylab = "Number of Counties",
+     col = "cornflowerblue")
+
+hist(log(clean_data_2$pct_black + clean_data_2$pct_native + clean_data_2$pct_hispanic),
+     main = "Histogram of log(Minority)",
+     xlab = "log(Minority)",
+     ylab = "Number of Counties",
+     col = "cornflowerblue")
+
+plot(pct_mask ~ log(clean_data_2$pct_black + clean_data_2$pct_native + clean_data_2$pct_hispanic), 
+     data = clean_data_2,
+      main = "Mask Wearing by log(Minority)",
+      xlab = "log(Minority)",
+      ylab = "Mask-Wearing Score",
+      col = "cornflowerblue")
+
+```
+
+``` {r Dem Governor, out.width = '50%', out.height = '50%', echo = FALSE}
+
+boxplot(pct_mask ~ dem_governor, data = clean_data_2,
+        main = "Mask Wearing by Democratic Governor",
+        xlab = "Democratic Governor",
+        ylab = "Mask-Wearing Score",
+        col = "cornflowerblue")
+
+```
+
+``` {r Mandate, out.width = '50%', out.height = '50%', echo = FALSE}
+
+boxplot(pct_mask ~ county_mandate, data = clean_data_2,
+        main = "Mask Wearing by County Mandate",
+        xlab = "County Mandate",
+        ylab = "Mask-Wearing Score",
+        col = "cornflowerblue")
+
+boxplot(pct_mask ~ state_mandate, data = clean_data_2,
+        main = "Mask Wearing by State Mandate",
+        xlab = "County Mandate",
+        ylab = "Mask-Wearing Score",
+        col = "cornflowerblue")
+
+```
+
+Other transformations: log(pct_seniors), log(pct_poverty)
+each ethnicity separately
+pct_hs leave alone
+%female is icky but let's leave it
+
+
+had to do 1+log
+left out 2 education categories bc of colinearity
+removed trump2020 bc of colinearity
+
+
+Thoughts: maybe %minority and %college
+
+
+```{r Full Model, no Interactions}
+
+fullmodel = lm(pct_mask ~ pop_2019 + ru_continuum + log(density) + pct_hs + log(1+pct_college) +
+               log(pct_poverty) + pct_female + log(1+pct_black) + log(1+pct_native) + log(1+pct_hispanic) +
+               log(1+pct_asian) + log(pct_seniors) + log(100-pct_trump_2016) + dem_governor +
+               state_mandate + county_mandate,
+               data = clean_data_2)
+
+summary(fullmodel)
+
+interactionmodel = lm(pct_mask ~ (pop_2019 + ru_continuum + log(density) + pct_hs + log(1+pct_college) +
+               log(pct_poverty) + pct_female + log(1+pct_black) + log(1+pct_native) + log(1+pct_hispanic) +
+               log(1+pct_asian) + log(pct_seniors) + log(100-pct_trump_2016) + dem_governor +
+               state_mandate + county_mandate)^2,
+               data = clean_data_2)
+
+```
+
+
+Things to think about: imputing data 
+```{r NAs}
+
+sapply(clean_data_2, function(x) sum(is.na(x)))
+
+```
+
+
+
+

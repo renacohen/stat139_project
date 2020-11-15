@@ -302,13 +302,11 @@ clean_data_2 <- join_10 %>%
 
 ```{r}
 
-
-
-
 summary(lm(always~(.-countyfp - county_name - never -state - always - rarely - sometimes - tot_pop - frequently), data = clean_data))
 
 summary(lm(always~ru_continuum, data = clean_data))
 
 plot(never~log(cases), data = clean_data)
+
 ```
 
