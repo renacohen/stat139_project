@@ -5,13 +5,43 @@ date: "11/15/2020"
 output: pdf_document
 ---
 
+
+
 ```{r Load data, echo = FALSE}
 
+library(gt)
+library(tidyverse)
+library(readr)
+library(readxl)
 clean_data_2 = readRDS("clean_data_2.rds")
 
 ```
 
+
+### Data and Sources
+
+  As the number of COVID-19 cases soars to unprecedented heights around the United States, public health experts and many political figures continue to emphasize mask wearing as one of the most effective ways to slow the spread of the pandemic. But, as a [New York Times survey](https://www.nytimes.com/interactive/2020/07/17/upshot/coronavirus-face-mask-map.html) from July 2020 shows, mask wearing adherence varies widely in counties around the nation. What predictors might explain this variation in mask wearing, and how might public health officials use this information to develop more effective mask-wearing interventions? To what extent can mask wearing predict the spread of the virus on a county level? 
+
+  To address these questions, we plan to create two models: one to predict mask-wearing adherence by county based on a variety of county and state-wide predictors, and one to predict the spread of coronavirus in a county based on mask-wearing. Our data about mask-wearing (which is our outcome in the first model and a predictor in the second model) is from the aforementioned *New York Times* survey, which was conducted by the survey firm Dynata on behalf of the Times from July 2 to July 14. Aggregated at the county level, it sorts 250,000 individual responses into 3,000 U.S. counties (suggesting that a mixed effects model will likely be a useful approach). The survey asked respondents how often they wore a mask (choices were always, frequently, sometimes, rarely, or never) and presents the percentage of people who gave each answer for every county, which we combined into a single weighted average representing the probability that a randomly selected person is wearing a mask in the county.
+
+  Our predictor variables were compiled from a variety of sources and joined with the mask wearing data by county FIPS code. We included gender, political party, education, and age statistics at the county level as all of these demographics have shown to differ in mask wearing frequency in [prior surveys](https://news.gallup.com/poll/315590/americans-face-mask-usage-varies-greatly-demographics.aspx), with political party being especially significant. Other data, such as this poll from the [Pew Research Center](https://www.pewresearch.org/fact-tank/2020/06/23/most-americans-say-they-regularly-wore-a-mask-in-stores-in-the-past-month-fewer-see-others-doing-it/) have suggested that mask wearing varies by race: this, combined with the fact that the pandemic has disproportionately impacted communities of color according to the [CDC](https://www.cdc.gov/mmwr/volumes/69/wr/mm6933e1.htm) motivated us to include variables about the racial composition of counties in our baseline model. Researchers at the [National Institute of Health](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7561164/) have suggested that age and location (i.e. rural vs. urban setting) likewise affect mask wearing behavior, so we included the percentage of seniors in a county (since COVID-19 most severely affects the elderly) and various measures of population density in our mask-wearing model. Finally, we wanted to look beyond county demographics and determine whether coronavirus-related measures, including number of cases/deaths, growth rate of the virus at the time of the survey, and local/statewide mask mandates explained any of the variation in mask wearing by county.
+  
+  For a complete list of the variables in our clean and compiled dataset and their sources, see the table below.
+  
+```{r Variables Table, echo = F}
+
+Variable_Names <- read_excel("Variable Names.xlsx")
+
+Variable_Names %>%
+  gt() %>%
+  tab_header(title = md("**Variable Names and Descriptions**"))
+
+```
+
+
 ### Exploratory Data Analysis
+
+  First, we wanted to make sure that our response variable `pct_mask` is distributed approximately normally. Based on this following histogram, the distribution of our response is roughly 
 
 ```{r Visualize Response Variable, out.width = '50%', out.height = '50%', echo = FALSE}
 
@@ -22,6 +52,7 @@ hist(clean_data_2$pct_mask,
      col = "cornflowerblue")
 
 ```
+
 ```{r Density, out.width = '50%', out.height = '50%', echo = FALSE}
 
 hist(clean_data_2$density,
@@ -159,6 +190,7 @@ boxplot(pct_mask ~ state_mandate, data = clean_data_2,
         col = "cornflowerblue")
 
 ```
+
 Other variables that needed to be log transformed were `pct_seniors`, `pct_poverty`, and all individual race/ethnicity categories. `pct_hs` did not need to be log transformed, and `pct_female` looked skewed both with and without a transformation, so we left it untransformed.
 
 We also have some missing variables in our dataset which we will have to figure out how to impute.
@@ -172,31 +204,31 @@ sapply(clean_data_2, function(x) sum(is.na(x)))
 
 ### Baseline Models
 
-In order to run the linear model, we had to change some of the transformations to `log(1+X)` so avoid taking the log of 0. Specifically, we had to do this for all 4 race/ethnicity variables and `pct_college`. We left out two of the education categories to `pct_less_than_hs` and `pct_some_college` to avoid multicolinearity, but moving forward, it might be best to create two a variables that sums `pct_college` and `pct_some_college`. We might consider doing the same thing with minority groups. Finally, we removed `pct_trump2020` from the model because the multicolinearity between that and the 2016 percent was inflating the standard errors.
+In order to run the linear model, we had to change some of the transformations to `log(1+X)` so avoid taking the log of 0. Specifically, we had to do this for all 4 race/ethnicity variables and `pct_college`. We left out two of the education categories to `pct_less_than_hs` and `pct_some_college` to avoid multicolinearity, but moving forward, it might be best to create two a variables that sums `pct_college` and `pct_some_college`. We might consider doing the same thing with minority groups. Finally, we removed `pct_trump2020` from the model because the multicolinearity between that and the 2016 percent was inflating the standard errors. **remove pop2019**
 
 
-```{r Full Model, no Interactions}
+```{r Full Model, no Interactions, cache = TRUE}
 
-interceptmodel = lm(pct_mask ~ 1, data = clean_data_2)
-
-fullmodel = lm(pct_mask ~ pop_2019 + ru_continuum + log(density) + pct_hs + log(1+pct_college) +
-               log(pct_poverty) + pct_female + log(1+pct_black) + log(1+pct_native) + log(1+pct_hispanic) +
-               log(1+pct_asian) + log(pct_seniors) + log(100-pct_trump_2016) + dem_governor +
-               state_mandate + county_mandate,
-               data = clean_data_2)
-
-summary(fullmodel)
-
-interactionmodel = lm(pct_mask ~ (pop_2019 + ru_continuum + log(density) + pct_hs + log(1+pct_college) +
-               log(pct_poverty) + pct_female + log(1+pct_black) + log(1+pct_native) + log(1+pct_hispanic) +
-               log(1+pct_asian) + log(pct_seniors) + log(100-pct_trump_2016) + dem_governor +
-               state_mandate + county_mandate)^2,
-               data = clean_data_2)
-
-selected_model = step(fullmodel, scope = list(lower = formula(interceptmodel), upper = formula(interactionmodel)), 
-     direction = "both", trace = 0)
-
-summary(selected_model)
+# interceptmodel = lm(pct_mask ~ 1, data = clean_data_2)
+# 
+# fullmodel = lm(pct_mask ~ ru_continuum + log(density) + pct_hs + log(1+pct_college) +
+#                log(pct_poverty) + pct_female + log(1+pct_black) + log(1+pct_native) + log(1+pct_hispanic) +
+#                log(1+pct_asian) + log(pct_seniors) + log(100-pct_trump_2016) + dem_governor +
+#                state_mandate + county_mandate,
+#                data = clean_data_2)
+# 
+# summary(fullmodel)
+# 
+# interactionmodel = lm(pct_mask ~ (ru_continuum + log(density) + pct_hs + log(1+pct_college) +
+#                log(pct_poverty) + pct_female + log(1+pct_black) + log(1+pct_native) + log(1+pct_hispanic) +
+#                log(1+pct_asian) + log(pct_seniors) + log(100-pct_trump_2016) + dem_governor +
+#                state_mandate + county_mandate)^2,
+#                data = clean_data_2)
+# 
+# selected_model = step(fullmodel, scope = list(lower = formula(interceptmodel), upper = formula(interactionmodel)), 
+#      direction = "both", trace = 0)
+# 
+# summary(selected_model)
 
 ```
 

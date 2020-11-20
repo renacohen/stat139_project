@@ -12,7 +12,7 @@ library(gt)
 library(tidyverse)
 library(readr)
 library(readxl)
-clean_data_2 <- readRDS("~/Desktop/STAT 139/stat139_project/clean_data_2.rds")
+clean_data_2 <- readRDS("clean_data_2.rds")
 
 ```
 
