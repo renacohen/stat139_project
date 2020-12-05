@@ -1,0 +1,97 @@
+---
+title: "Final Cleaning and Splits"
+author: "Rena Cohen"
+date: "12/5/2020"
+output: html_document
+---
+```{r}
+library(tidyverse)
+library(readr)
+```
+
+```{r}
+clean_data_2 <- readRDS("~/Desktop/STAT 139/stat139_project/clean_data_2.rds")
+
+# Merging in the NYT data from recent days
+recent_covid <- read_csv("raw_data_masks/recent_covid.csv") %>%
+  select(fips, cases, deaths) %>%
+  rename(countyfp = fips)
+
+# Note that this is Data from December 5th
+
+clean_data_complete <- left_join(clean_data_2, recent_covid,
+                                 by = "countyfp")  %>%
+  
+  # getting rid of variables that are no longer useful
+  
+  select(-c("always", "frequently", "sometimes", "rarely", "never", "cases_27",
+            "deaths_27", "case_growth_1", "case_growth_2", "pct_less_than_hs",
+            "pct_hs", "pct_trump_2016")) %>%
+  # creating a county party indicator
+  
+  mutate(vote_dem = ifelse(pct_trump_2020 < 0.5, T, F)) %>%
+  
+  # creating a variable for some college
+  
+  mutate(college = pct_college + pct_some_college)%>%
+  
+  rename(cases_current = cases) %>%
+  select(-c("pct_college", "pct_some_college")) %>%
+  
+  # Making case rates rather than raw numbers
+  # For July, I took the average of the number of cases at the beginning of
+  # the survey and at the end. I also multiplied these by 100,000 so that it 
+  # could be interpreted as number of cases per 100,000 people (this will make
+  # it so that we no longer have negatives on our log scale later)
+  
+  mutate(case_rate_july = 100000*(cases_14+cases_02)/(2*pop_2019))%>%
+  mutate(death_rate_july = 100000*(deaths_14+deaths_02)/(2*pop_2019)) %>%
+  mutate(case_rate_december = 100000*cases_current/pop_2019) %>%
+  mutate(death_rate_december = 100000*deaths/pop_2019) %>%
+  
+  select(-c("cases_14", "cases_02", "cases_current", "deaths_14",
+            "deaths_02", "deaths")) %>%
+  
+  # Transforming that which needs transforming based on Chloe's suggestions
+  
+  mutate(log_pct_poverty = log(pct_poverty)) %>%
+  mutate(log_pct_seniors = log(pct_seniors)) %>%
+  mutate(log_pct_minority = log(pct_native + pct_black + pct_asian + 
+                                  pct_hispanic)) %>%
+  mutate(log_density = log(density)) %>%
+  mutate(log_case_rate_july = log(case_rate_july)) %>%
+  mutate(log_death_rate_july = log(death_rate_july)) %>%
+  mutate(log_death_rate_december = log(death_rate_december)) %>%
+  mutate(log_case_rate_december = log(case_rate_december)) %>%
+  
+  # deselecting variables we no longer need
+  
+  select(-c("pct_poverty", "pct_black", "pct_native", "pct_hispanic",
+            "pct_asian", "pct_seniors", "case_rate_july", "death_rate_july",
+            "case_rate_december", "death_rate_december"))
+
+
+# Finally, splitting data into test and train to save as RDS
+
+set.seed(139)
+
+data_complete <- clean_data_complete
+nrow(data_complete)
+
+# Carrying out the 80-20 split
+
+ids <- sample(1:round(0.8*nrow(data_complete)), replace = F)
+data_train <- data_complete[ids,]
+data_test <- data_complete[-ids,]
+
+# Saving everything as an RDS
+
+saveRDS(data_complete, "data_complete.RDS")
+saveRDS(data_train, "data_train.RDS")
+saveRDS(data_test, "data_test.RDS")
+```
+
+```{r}
+
+```
+
