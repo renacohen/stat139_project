@@ -149,4 +149,81 @@ anova(lm_6, lm_7)
 
 **Future COVID-19 Spread and Mask Wearing Behavior**
 
-Thus far, we have concentrated our efforts on exploring what variables contribute to mask-wearing behavior as measured by the NYT survey, with underlying idea that mask-wearing behavior is a useful thing to know about because it directly impacts the spread of the pandemic. To this end, we were curious—could mask wearing behavior measured in a county in July 
+Thus far, we have concentrated our efforts on exploring what variables contribute to mask-wearing behavior as measured by the NYT survey, with underlying idea that mask-wearing behavior is a useful thing to know about because it directly impacts the spread of the pandemic. As a final exploration in our project, we wanted to put this claim to the test and investigate whether mask wearing behavior as measured by a survey in July could provide any predictive power in determining COVID-19 case rates in a county in December. While the link between masks and COVID-19 is causal (i.e. wearing a mask directly increases or reduces your chances of obtaining the virus), this is in no way a causal model, as behaviors may have changed greatly within the past 6 months and we are dealing with observational data to begin with. Rather, we intend to treat $mask_{pct}$ as a proxy for the "carefulness" of a county, as measured early in the pandemic. 
+
+As expected the current case rate is quite right-skewed; most counties have between 0 and 10,000 cases per 100,000 residents, but some counties have as many as 20,000 cases per 100,000 residents. For this reason, we log transformed case_rate_december, our y variable for this investigation. An initial plot of the transformed case rate variable against $mask_pct$ shows a weak negative association, albeit with many influential points, as there seemed to be several counties with very high mask-wearing scores that had an especially low case rate in December. However, rather than fitting an OLS model straightaway, we decided to begin with a mixed effects model to predict cases by state using random intercepts. This is because different states have enacted different policies (i.e. shutdowns, prevalence/availability of tests, etc.) that could help explain differing numbers in current cases. Based on this model, the average case rate among states is estimated to be exp(8.24920) = 3,824.565 per 100,000 residents. Next, we fit another random intercepts model which included pct_mask as a fixed effect; in this model, on average, the an additional 1 percent in mask wearing within a county in July was associated with an increase of about 1 person (exp(-0.005853)) in the case rate per 100,000 people. This result, while quite small in magnitude, added significant explanatory power to the model ($\chi_1^2$ = 31.21, p < 0.0001); it also held when we calculated the RMSE for our two models on test data.
+
+
+```{r}
+# Should I be scaling here?
+lmer_3 <- lmer(log_case_rate_december~1+(1|state), data = data_train)
+lmer_4 <- lmer(log_case_rate_december~1+ pct_mask +(1|state), data = data_train)
+anova(lmer_3, lmer_4)
+summary(lmer_3)
+exp(8.24920)
+summary(lmer_4)
+exp(-0.005853)
+
+unique(data_test$state)
+unique(data_train$state)
+# Calculating RMSE for the linear mixed models
+RMSE(lmer_3, data_train, data_train$log_case_rate_december)
+RMSE(lmer_4, data_train, data_train$log_case_rate_december)
+```
+
+
+```{r}
+# making a plot that shows this
+
+plot(log_case_rate_december~pct_mask, data = data_train)
+lm_10 <- lm(log_case_rate_december~pct_mask, data = data_train)
+lm_11 <- lm(log_case_rate_december~pct_mask, data = data_train, weight = pop_2019)
+
+summary(lm_10)
+summary(lm_11)
+
+# What states had the highest residuals here?
+
+
+state_invest <- cbind(data_train, summary(lm_10)$residuals) %>%
+  select(state, county_name, "summary(lm_10)$residuals") %>%
+  rename(residuals = "summary(lm_10)$residuals") %>%
+  arrange(residuals)
+head(state_invest)
+
+```
+
+
+```{r}
+library(lme4)
+plot(log_case_rate_december~pct_mask, data = data_train)
+plot(sqrt(case_rate_december)~pct_mask, data = data_train)
+hist(sqrt(data_train$case_rate_december))
+hist(data_train$)
+boxplot(data_train$case_rate_december)
+View(data_train)
+lm_10 <- lm(log_case_rate_december~pct_mask, data = data_train)
+summary(lm_10)
+plot(lm_10)
+
+# Many of the counties with the highest residuals were in Maine (11 out of the 
+# top 20 negative residuals), suggesting that a random effects model using state
+# might be helpful
+
+lmer_1 <- lmer(log_case_rate_december~pct_mask + (1|state), data = data_train)
+summary(lmer_1)
+
+
+lmer_2 <- lmer(log_case_rate_december~pct_mask + (1+pct_mask|state), data = data_train)
+summary(lmer_2)
+coef(lmer_2)$state
+anova(lmer_1, lmer_2)
+
+state_invest_lmer <- cbind(data_train, summary(lmer_1)$residuals) %>%
+  select(state, county_name, "summary(lmer_1)$residuals") %>%
+  rename(residuals = "summary(lmer_1)$residuals") %>%
+  arrange(residuals)
+head(state_invest_lmer)
+View(state_invest_lmer)
+```
+
