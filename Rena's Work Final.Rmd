@@ -1,0 +1,152 @@
+---
+title: "Rena's Work Final"
+author: "Rena Cohen"
+date: "12/7/2020"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r include = F}
+library(caret)
+```
+**Diving Deeper: Examining the Efficacy of Mask Mandates In Promoting Mask Wearing Behavior**
+
+Mask mandates at the county and state levels have been widely proposed as an effective and low-cost strategy for reducing the spread of COVID-19. This strategy assumes that wearing a mask truly does reduce the spread of COVID-19 (very reasonable given the preponderance of scientific evidence supporting this claim [citation here]). It also makes a second assumption: that people will follow a mask mandate if it is in place. This assumption is more questionable, as there are reasons to believe that a mask mandate may have no effect on some individuals who are skeptical about masks (most of whom tend to be Republican, as discussed in this recent Pew Research Study) given that in many states, law enforcement is unwilling to enforce mask mandates (https://www.npr.org/2020/07/08/888499285/more-states-require-masks-in-public-as-covid-19-spreads-but-enforcement-lags)   https://www.pewresearch.org/fact-tank/2020/10/29/both-republicans-and-democrats-cite-masks-as-a-negative-effect-of-covid-19-but-for-very-different-reasons/).  In this portion of the project, we wish to further investigate the relationship between mask mandates and mask wearing behavior. Is there evidence that counties with mandates have higher mask-wearing behavior after taking into account partisanship (which has become a proxy for attitudes towards mask wearing)? If so, might counties with different political leanings respond to county-wide mask mandates in different ways? While we cannot make causal claims with any of our data, we hope to identify patterns that may inform the often-contentious discussions about local mask mandates as a strategy for COVID-19 mitigation.
+
+While counties with local mask mandates did have higher mask-wearing adherence on average (as shown in a two-sample t-test in our introduction), counties with a larger share of Republicans were also much less likely to have mask mandates in general. A logistic regression predicting the existence of a mask mandate in early July from the percent of the county who voted for Trump in the 2020 presidential election showed that partisanship is a very significant predictor of a county-wide mask mandate (z = -14.02139, p < 0.0001). An increase of 1 percent in 2020 votes for Trump is associated with an odds ratio of 0.9591775, or a multiplicative factor of 2.609549.  As shown in the plot below, this model meant that a county that was 80% Democratic had about an 81.9% chance of having a mask mandate, a county equally split between the counties had about a 56.4% chance of a mandate, and a county that was 80% Republican had about a 27.1% chance of a mandate. 
+
+```{r echo = F}
+data_train = readRDS("~/Desktop/STAT 139/stat139_project/data_train.RDS")
+logit_1 = glm(county_mandate~pct_trump_2020, data = data_train, family = "binomial")
+dummy.pct = seq(0,100,1)
+yhat = predict(logit_1, new = data.frame(pct_trump_2020 = dummy.pct))
+phat = exp(yhat)/(1+exp(yhat))
+plot(county_mandate~pct_trump_2020, data = data_train, cex = 0.5, pch = 16, col = rgb(0.2,0.2,0.2,0.1), ylab = "Odds of a Countwide Mandate",
+     xlab = "Percent Trump Votes, 2020", 
+     main = "Mandate Odds vs. Partisanship")
+lines(phat~dummy.pct, col = "dodgerblue", lwd = 2)
+```
+
+Clearly, partisanship is a strong predictor of whether a county has a mask mandate in place in the first place (which makes sense given that leaders in local governments who make masking policies naturally represent the political beliefs of their constituents). Are the differences in what types of counties have mandates enough to explain away differences in mask wearing behavior? To address this question, we conducted an ESS F test to compare a linear model predicting mask wearing from just partisanship on the training set to a linear model with both partisanship and a mask mandate as a predictor (in both these cases, partisanship was fitted using a polynomial of degree 2, as this seemed to better account for regression assumptions and explain non-linearities in the data). We found that the addition of the mask mandate was statistically significant (F = 189.75, p < 0.0001): After controllng for partisanship, the predicted increase that a person in a county was wearing a mask in a mandate was 4.7880722. 
+
+In order to consider whether the relationship between mandates and mask-wearing varied based on partisanship, we considered adding an interaction term between these two variables. The addition of this term was not significant in an ESS-F test (F = 0.5669, p = 0.5674 > 0.005), suggesting that the relationship between mask mandates and mask-wearing behavior is not necessarily tied to partisanship: good news for public house officials who may worry that mandates in largely-Republican counties would be ignored by constituents or indifferent law enforcement personel. In order to further cement this finding, we conducted 5-fold cross validation and found that the addition in the interaction term provided little change to the RMSE in the training set (dropped from 8.03804 to 8.033151), and when we calculated on our test set to mimic out of sample prediction, it also did not decrease much (dropped from 8.935983 to 8.895242). 
+
+```{r include = F}
+lm_0 <- lm(pct_mask~pct_trump_2020, data = data_train)
+summary(lm_0)
+
+# linearity assumption is not great here: fitting a model with a degree 2 
+# polynomial instead
+
+lm_1 <- lm(pct_mask~pct_trump_2020 + I(pct_trump_2020^2), data = data_train)
+summary(lm_1)
+anova(lm_0, lm_1)
+
+# That takes care of the non-linearities; assumptions are actually quite good.
+# And the anova shows that the polynomial term does add predictive power
+# Now fitting the same model with a countywide mandate added in
+
+lm_2 <- lm(pct_mask~pct_trump_2020 + I(pct_trump_2020^2) + county_mandate, 
+           data = data_train)
+summary(lm_2)
+anova(lm_1, lm_2)
+
+# County mandate is very significant! (F = 189.75, p < 0.0001). After controlling
+# for partisanship, counties with a mandate had a probability that a 
+# participant wore a mask calculated to be 4.7880722 percentage points higher
+# than counties without a mandate
+
+# Did this relationship vary by partisanship? Add some interaction terms!!
+
+lm_3 <- lm(pct_mask~pct_trump_2020 + I(pct_trump_2020^2) + county_mandate +
+                       pct_trump_2020*county_mandate, 
+           data = data_train)
+lm_4 <- lm(pct_mask~pct_trump_2020 + I(pct_trump_2020^2) + county_mandate +
+                       pct_trump_2020*county_mandate + 
+                       I(pct_trump_2020^2)*county_mandate, 
+           data = data_train)
+
+anova(lm_2, lm_4)
+# Was the relationship between mask mandates and mask adherence different
+# in Republican and Democratic Counties? 
+
+lm_3.5 <- lm(pct_mask~pct_trump_2020 + county_mandate,
+           data = data_train)
+lm_4 <- lm(pct_mask~pct_trump_2020 + county_mandate + 
+             pct_trump_2020*county_mandate,
+           data = data_train)
+summary(lm_4)
+anova(lm_3.5, lm_4)
+
+data_train <- readRDS("~/Desktop/STAT 139/stat139_project/data_train.RDS")
+data_test <- readRDS("~/Desktop/STAT 139/stat139_project/data_test.RDS")
+
+RMSE = function(model, newdata, y){
+  yhat = predict(model, newdata = newdata)
+  RMSE = sqrt(sum((y-yhat)^2/nrow(newdata)))
+  return(RMSE)
+}
+
+
+plot(lm_4)
+RMSE(lm_4, data_test, data_test$pct_mask)
+RMSE(lm_2, data_test, data_test$pct_mask)
+RMSE(lm_3, data_test, data_test$pct_mask)
+RMSE(lm_3.5, data_test, data_test$pct_mask)
+```
+
+
+```{r include = F}
+# Using 5 fold cross validation to compare RMSE on model with interaction term
+# vs. no interaction term
+
+cv5 = trainControl(method = "cv", number = 5)
+lm_1_cv = train(formula(lm_1), data = data_train, method = "lm", trControl = cv5)
+lm_2_cv = train(formula(lm_2), data = data_train, method = "lm", trControl = cv5)
+lm_3_cv = train(formula(lm_3), data = data_train, method = "lm", trControl = cv5)
+lm_4_cv = train(formula(lm_4), data = data_train, method = "lm", trControl = cv5)
+
+rmse.5fold = c((lm_1_cv$results)$RMSE, (lm_2_cv$results)$RMSE,
+               (lm_3_cv$results)$RMSE, (lm_4_cv$results)$RMSE)
+
+rmse.5fold
+
+# now RMSE on the test set
+
+rmse.test = c(RMSE(lm_1, data_test, data_test$pct_mask), 
+              RMSE(lm_2, data_test, data_test$pct_mask),
+RMSE(lm_3, data_test, data_test$pct_mask), 
+RMSE(lm_4, data_test, data_test$pct_mask))
+
+rmse.test
+```
+
+One other question that arose was whether county-wide mandates still increased mask wearing when a statewide mandate was already in place. In order to account for this, we refit our previous model adding in a term for statewide mandate, and refit again with an interaction term between state and county mandates. In each of these models, the addition of the new terms added significant predictive power to the model as determined by an appropriate ESS F Test. Focusing more closely on the interaction term, the 95% confidence interval for the predicted increase in 
+
+[what do I do here? a bootstrap? a contrast? basically, I want to see how likely it is that a state with a mask mandate already in place sees no difference from their countywide mandate]
+
+```{r}
+library(tidyverse)
+data_train_state_mandate <- data_train %>%
+  filter(state_mandate == 1)
+
+lm_5 <- lm(formula = lm_2, data = data_train_state_mandate)
+summary(lm_5)
+
+lm_6 <- lm(pct_mask~ pct_trump_2020 + pct_trump_2020^2 + state_mandate +
+             county_mandate, 
+           data = data_train)
+lm_7 <- lm(pct_mask~ pct_trump_2020 + pct_trump_2020^2 + state_mandate +
+             county_mandate + state_mandate:county_mandate, 
+           data = data_train)
+summary(lm_6)
+summary(lm_7)
+anova(lm_6, lm_7)
+
+
+```
+
+**Future COVID-19 Spread and Mask Wearing Behavior**
+
+Thus far, we have concentrated our efforts on exploring what variables contribute to mask-wearing behavior as measured by the NYT survey, with underlying idea that mask-wearing behavior is a useful thing to know about because it directly impacts the spread of the pandemic. To this end, we were curious—could mask wearing behavior measured in a county in July 

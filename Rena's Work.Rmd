@@ -1,0 +1,237 @@
+---
+title: "Rena's Work"
+author: "Rena Cohen"
+date: "12/5/2020"
+output: html_document
+---
+
+qql
+
+```{r}
+library(lme4)
+names(data_train)
+```
+
+
+```{r}
+data_train <- readRDS("~/Desktop/STAT 139/stat139_project/data_train.RDS")
+
+# Do mask mandates allow extra predictive power? First I fit a basic OLS model
+
+fit_1 <- lm(pct_mask~pct_trump_2020, data = data_train)
+summary(fit_1)
+
+# I also want a basic lmer model that can incorporate the effect of partisanship on mask wearing at a state level
+
+lmer_0 <- lmer(pct_mask~pct_trump_2020 + (1|state), data = data_train)
+
+plot(pct_mask~pct_trump_2020, data = data_train)
+states = c("Massachusetss", "Florida")
+abline(summary(lmer_0)$coef[1:2,1], col = "red")
+abline(summary(lmer_0)$coef[1:2,1] + summary(), col = "blue")
+
+# Now I fit a model with state mask mandates added in
+
+fit_2 <- lm(pct_mask~pct_trump_2020+state_mandate, data = data_train)
+summary(fit_2)
+
+# Statewide mask mandates are very significant! 
+
+anova(fit_1, fit_2)
+
+# Now what about a state and county mask mandate?
+
+fit_3 <- lm(pct_mask~pct_trump_2020+state_mandate + county_mandate, 
+            data = data_train)
+anova(fit_2, fit_3)
+
+# Addition of a county mandate is likewise very significant
+
+# Does the effect of a mask mandate vary by state?
+
+lmer_1 <- lmer(pct_mask ~ pct_trump_2020 + state_mandate + (1+state_mandate|state),
+               data = data_train)
+coef(lmer_1)$state
+summary(lmer_1)
+
+lmer_2 <- lmer(pct_mask ~ scale(pct_trump_2020) + state_mandate + 
+                 (1+state_mandate+scale(pct_trump_2020)|state),
+               data = data_train)
+
+coef(lmer_2)$state
+anova(lmer_1, lmer_2)
+
+qqnorm(coef(lmer_1)$state[['(Intercept)']])
+qqline(coef(lmer_1)$state[['(Intercept)']])
+
+coef(lmer_0)$state
+```
+
+```{r}
+names(data_train)
+
+lm_c <- lm(log_case_rate_december~log_case_rate_july, data = data_train)
+
+lm_c2 <- lm(log_case_rate_december~log_case_rate_july + pct_trump_2020, data = data_train)
+
+lm_c3 <- lm(log_case_rate_december~(poly(log_case_rate_july + pct_trump_2020 + 
+              pct_mask, 2), data = data_train, weights = pop_2019)
+summary(lm_c2)
+summary(lm_c3)
+plot(lm_c3)
+plot(log_case_rate_december~pct_mask, data = data_train)
+lm_c4 <- lm(log_case_rate_december~poly(pct_mask,2), data = data_train)
+plot(lm_c4)
+summary(lm_c4)
+plot(exp(log_case_rate_december)~pct_mask, data = data_train)
+```
+
+```{r}
+library(lme4)
+data_train <- readRDS("~/Desktop/STAT 139/stat139_project/data_train.RDS")
+
+library(tidyverse)
+data_train <- data_train %>%
+  mutate(log_rate_december = log(cases_december/pop_2019))
+
+hist(data_train$log_rate_december)
+
+data_train <- data_train %>%
+  mutate(log_case_rate_december = ifelse(log_case_rate_december == Inf | 
+      log_case_rate_december == -Inf, 0, log_case_rate_december))
+
+View(data_train)
+
+lmer_2.5 <- lmer(log_rate_december~(1|state), data = data_train)
+
+lmer_2.6 <- lmer(log_rate_december~ pct_mask + (1+pct_mask|state), data = data_train)
+
+lmer_3 <- lmer(log_rate_december~pct_mask + (1|state), data = data_train)
+summary(lmer_3)
+
+
+anova(lmer_2.5, lmer_3)
+anova(lmer_3, lmer_2.6)
+# Overall average intercept is 8.702853, so an average of
+# e^-2.810073 cases (equivalent to 6,020 cases per 100,000 indiviuals)
+
+exp(-2.810073)
+
+# Checking assumptions
+
+plot(resid(lmer_3)~predict(lmer_3), pch = 1, cex = 0.5)
+
+# Linearity looks ok. How do residuals vary across county size?
+
+plot(resid(lmer_3)~data_train$pop_2019)
+
+# Residuals are not great; we have a clear violation of nonconstant variance
+# here based on county population since we'd expect small counties to vary more
+
+# Solution? Weight based on population
+
+# Divided pop to scale data and speed up convergence
+
+lmer_4 <- lmer(log_rate_december~pct_mask + (1|state),
+               weight = pop_2019/100000, data = data_train)
+
+summary(lmer_4)
+
+plot(resid(lmer_4)*sqrt(data_train$pop_2019)~data_train$pop_2019)
+
+# Constant variance is still not great. Will try
+# Poisson based regression
+
+data_train <- data_train %>%
+  
+  # converting back to raw number of cases
+  
+  mutate(cases_december = case_rate_december*pop_2019/100000)
+data_train$cases_december
+
+library(glmnet)
+lmer_5 <- glmer(cases_december~1+ offset(log(pop_2019))+
+                  (1|state), data = data_train,
+                family = "poisson")
+
+summary(lmer_5)
+
+exp(-3.13829)
+
+# An overall smaller case rate for the effect... interesting! Are we doing worse at accounting for the variation in the model?
+
+lmer_6 <- glmer(cases_december~1+ scale(pct_mask) + offset(log(pop_2019))+
+                  (1|state), data = data_train,
+                family = "poisson")
+
+summary(lmer_6)
+
+# With pct_mask added back in, things basically look the same
+
+anova(lmer_5, lmer_6)
+
+plot(resid(lmer_5)~log(pop_2019), data = data_train)
+```
+
+```{r}
+# Exploring county-wide mask mandates
+data_train <- readRDS("~/Desktop/STAT 139/stat139_project/data_train.RDS")
+lm_masks <- lm(pct_mask~county_mandate, data = data_train)
+# Masks mandates in counties by themselves are estimated to provide an increase
+# of  8.0213 pct
+
+summary(lm_masks)
+
+lm_partisanship <- lm(pct_mask~pct_trump_2020, data = data_train)
+lm_masks_partisanship <- lm(pct_mask~pct_trump_2020 + county_mandate, data = data_train)
+summary(lm_masks_partisanship)
+
+# Holding partisanship constant, the effect of county mandates is still
+# significant
+
+lm_state_county_partisan <- lm(pct_mask~pct_trump_2020 + county_mandate + state_mandate + county_mandate:state_mandate, data = data_train)
+summary(lm_state_county_partisan)
+
+lm_state_county_partisan_interact <- lm(pct_mask~pct_trump_2020 + county_mandate + state_mandate + county_mandate:state_mandate + pct_trump_2020*county_mandate, data = data_train)
+
+summary(lm_state_county_partisan_interact)
+
+plot(lm_state_county_partisan_interact)
+
+# plot some example trajectories
+```
+```{r}
+# Doing a logistic regression to show how partisanship relates to the existance of a max mandate
+
+logit_1 = glm(county_mandate~pct_trump_2020, data = data_train, family = "binomial")
+summary(logit_1)$coef
+exp(logit_1$coef[2])
+
+# Paritsanship is a very significant predictor of a county-wide mask mandate (z = -14.02139, p < 0.0001) and the association is negative as Trump voters tend to be loss supportive of mask mandates in general. An increase of 1 percent in 2020 votes for trump is associated with an odds ratio of 0.9591775, or a 
+
+# Here's a plot to illustrate
+dummy.pct = seq(0,100,1)
+yhat = predict(logit_1, new = data.frame(pct_trump_2020 = dummy.pct))
+phat = exp(yhat)/(1+exp(yhat))
+plot(county_mandate~pct_trump_2020, data = data_train, cex = 0.5, pch = 16, col = rgb(0.2,0.2,0.2,0.1))
+lines(phat~dummy.pct, col = "red")
+
+exp(0.9591775)
+
+cbind(phat, dummy.pct)
+```
+
+
+```{r}
+logit_2 = glm(county_mandate~pct_female, data = data_train, family = "binomial")
+summary(logit_2)$coef
+exp(logit_2$coef[2])
+
+dummy.pct = seq(0,100,1)
+yhat = predict(logit_2, new = data.frame(pct_female = dummy.pct))
+phat = exp(yhat)/(1+exp(yhat))
+plot(county_mandate~pct_female, data = data_train, cex = 0.5, pch = 16, col = rgb(0.2,0.2,0.2,0.1))
+lines(phat~dummy.pct, col = "red")
+```
+
+1

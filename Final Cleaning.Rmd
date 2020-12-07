@@ -68,14 +68,20 @@ clean_data_complete <- left_join(clean_data_2, recent_covid,
   
   select(-c("pct_poverty", "pct_black", "pct_native", "pct_hispanic",
             "pct_asian", "pct_seniors", "case_rate_july", "death_rate_july",
-            "case_rate_december", "death_rate_december"))
+            "case_rate_december", "death_rate_december")) 
+  
+  # removing missing values: there aren't too many and I can investigate later,
+# but I'm just going to remove any rows that have missing values for now.
 
+sapply(clean_data_complete, function(x) sum(is.na(x)))
+
+data
 
 # Finally, splitting data into test and train to save as RDS
 
 set.seed(139)
 
-data_complete <- clean_data_complete
+data_complete <- na.omit(clean_data_complete)
 nrow(data_complete)
 
 # Carrying out the 80-20 split
