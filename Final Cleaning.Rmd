@@ -10,7 +10,7 @@ library(readr)
 ```
 
 ```{r}
-clean_data_2 <- readRDS("~/Desktop/STAT 139/stat139_project/clean_data_2.rds")
+clean_data_2 <- readRDS("clean_data_2.rds")
 
 # Merging in the NYT data from recent days
 recent_covid <- read_csv("raw_data_masks/recent_covid.csv") %>%
@@ -29,11 +29,11 @@ clean_data_complete <- left_join(clean_data_2, recent_covid,
             "pct_hs", "pct_trump_2016")) %>%
   # creating a county party indicator
   
-  mutate(vote_dem = ifelse(pct_trump_2020 < 0.5, T, F)) %>%
+  mutate(vote_dem = ifelse(pct_trump_2020 < 50, 1, 0)) %>%
   
   # creating a variable for some college
   
-  mutate(college = pct_college + pct_some_college)%>%
+  mutate(pct_anycollege = pct_college + pct_some_college)%>%
   
   rename(cases_current = cases) %>%
   select(-c("pct_college", "pct_some_college")) %>%
@@ -59,10 +59,10 @@ clean_data_complete <- left_join(clean_data_2, recent_covid,
   mutate(log_pct_minority = log(pct_native + pct_black + pct_asian + 
                                   pct_hispanic)) %>%
   mutate(log_density = log(density)) %>%
-  mutate(log_case_rate_july = log(case_rate_july)) %>%
-  mutate(log_death_rate_july = log(death_rate_july)) %>%
-  mutate(log_death_rate_december = log(death_rate_december)) %>%
-  mutate(log_case_rate_december = log(case_rate_december)) %>%
+  mutate(log_case_rate_july = log(case_rate_july + 1)) %>%
+  mutate(log_death_rate_july = log(death_rate_july + 1)) %>%
+  mutate(log_death_rate_december = log(death_rate_december + 1)) %>%
+  mutate(log_case_rate_december = log(case_rate_december + 1)) %>%
   
   # deselecting variables we no longer need
   

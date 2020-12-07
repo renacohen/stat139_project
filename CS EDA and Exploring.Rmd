@@ -1,0 +1,41 @@
+---
+title: "CS EDA and Exploring"
+author: "Chloe Shawah"
+date: "12/7/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(knitr)
+library(xtable)
+library(corrplot)
+
+
+```
+
+```{r, echo = F}
+
+mask_train = readRDS("data_train.rds")
+
+```
+The predictors we will consider for predicting mask usage are:
+
+```{r echo = F}
+
+mask_train_preds = mask_train %>% 
+  select(pop_2019, county_mandate, log_pct_seniors, ru_continuum, pct_trump_2020, log_pct_minority, dem_governor, pct_anycollege, log_density, state_mandate, pct_female, log_pct_poverty, vote_dem)
+
+ctable = round(cor(mask_train_preds), 2)
+
+col <- colorRampPalette(c("#BB4444", "#EE9988", "#FFFFFF", "#77AADD", "#4477AA"))
+corrplot(ctable, method = "color", col = col(200),
+         type = "upper", order = "hclust", number.cex = .5,
+         addCoef.col = "black",
+         tl.col = "black", tl.srt = 90, tl.cex = 0.75, cl.cex = 0.7,
+         insig = "blank", number.font = 1)
+
+```
+
