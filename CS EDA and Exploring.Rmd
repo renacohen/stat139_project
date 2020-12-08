@@ -21,27 +21,44 @@ library(xtable)
 mask_train = readRDS("data_train.rds")
 
 ```
-To predict mask usage in each county, we will use the predictors:  
 
-**pop_2019:** population in 2019  
-**log_density:** population density, log transformed  
-**ru_continuum:** discrete score from 1 to 10 on the rural-Urban continuum with 1 being the most urban  
-**log_pct_seniors:** percent of adults 65+ in 2019, log transformed  
-**log_pct_minority:** percent of people from minority backgrounds in 2019, log-transformed  
-**log_pct_poverty:** percent of people estimated to be living in poverty in 2018, log-transformed  
-**pct_anycollege:** percent of adults who attended at least some college in 2018  
-**pct_female:** percent of females in 2019  
-**pct_trump2020:** percent of votes for Trump in 2020 election  
-**vote_dem:** indicator of whether the majority of the county supported Biden in 2020 election  
-**dem_governor:** indicator of whether the county is in a state with a Democrat governor   
-**state_mandate:** indicator of whether the county is in a state with a state-wide mask mandate   
-**county_mandate:** indicator of whether the county has a county-wide mask mandate  
+**Exploratory Data Analysis**
 
+After cleaning our data, our first step was to visualize our main response variable, mask-wearing score, to ensure that assumptions of our later models would be met. We found that the distribution of mask-wearing score to be approximately normal (see Appendix), which means that we will leave it untransformed for our later models. We then repeated this process for our predictors, log-transforming where needed. A final list of our predictors and their transformations is listed below:
 
-```{r echo = F}
+```{r Mask-wearing hist, out.width = '50%', out.height = '50%', echo = FALSE}
+# 
+# hist(mask_train$pct_mask,
+#      main = "Histogram of Mask-Wearing Score",
+#      xlab = "Mask-Wearing Score",
+#      ylab = "Number of Counties")
+
+```
+
+\begin{table}[ht]
+\begin{tabular}{rl}
+  pop\_2019:& population in 2019  \\ 
+  log\_density:& population density, log transformed \\ 
+  ru\_continuum:& discrete score from 1 to 10 on the rural-Urban continuum with 1 being the most urban \\ 
+  log\_pct\_seniors:& percent of adults 65+ in 2019, log transformed  \\ 
+  log\_pct\_minority:& percent of people from minority backgrounds in 2019, log-transformed \\ 
+  log\_pct\_poverty:& percent of people estimated to be living in poverty in 2018, log-transformed \\
+  pct\_anycollege:& percent of adults who attended at least some college in 2018  \\ 
+  pct\_female:& percent of females in 2019 \\ 
+  pct\_trump2020:& percent of votes for Trump in 2020 election \\
+  dem\_governor:& indicator of whether the county is in a state with a Democrat governor  \\ 
+  state\_mandate:& indicator of whether the county is in a state with a state-wide mask mandate \\ 
+  county\_mandate:& indicator of whether the county has a county-wide mask mandate \\
+\end{tabular}
+\end{table}
+
+To ensure that none of these predictors were too colinear, we computed a correlation table to assess their correlations:
+
+```{r out.width = '70%', out.height = '70%', echo = FALSE, fig.align = 'center'}
 
 mask_train_preds = mask_train %>% 
-  select(pop_2019, county_mandate, log_pct_seniors, ru_continuum, pct_trump_2020, log_pct_minority, dem_governor, pct_anycollege, log_density, state_mandate, pct_female, log_pct_poverty, vote_dem)
+  select(pop_2019, county_mandate, log_pct_seniors, ru_continuum, pct_trump_2020, log_pct_minority, dem_governor, pct_anycollege, log_density, state_mandate, pct_female, log_pct_poverty) %>% 
+  na.omit()
 
 ctable = round(cor(mask_train_preds), 2)
 
@@ -54,10 +71,9 @@ corrplot(ctable, method = "color", col = col(200),
 
 ```
 
+The strongest correlations we see between predictors is between percent poverty and percent college at -0.63 and between Democrat governor and state mandate at 0.63. Both of these associations do not surprise us, and are not so high that we are concerned about their impacts for our modeling. Another takeaway from this correlation table, however, is the extent to which political predictors like votes for Trump are correlated with seemingly apoltical predictors such as percent minority (-0.47). This will be important for us to keep in mind later in our analysis when we try to determine the effect of politics on mask-wearing behavior.
 
-**Demographic Characteristics:**
-
-Plotting a few key predictors
+We then visualized the relationship between several of our predictors and mask-wearing score with scatterplots and boxplots. Two note-worthy plots were those for density and percent Trump votes.
 
 ```{r County Chars, out.width = '50%', out.height = '50%', echo = FALSE}
 
@@ -65,59 +81,53 @@ plot(pct_mask ~ log_density, data = mask_train,
         main = "Mask Wearing by Density",
         xlab = "log(Density)",
         ylab = "Mask-Wearing Score")
-
-plot(pct_mask ~ log_pct_seniors, data = mask_train,
-        main = "Mask Wearing by % Seniors",
-        xlab = "log(percent Seniors)",
-        ylab = "Mask-Wearing Score")
-
-plot(pct_mask ~ log_pct_minority, data = mask_train,
-        main = "Mask Wearing by % Minority",
-        xlab = "log(percent Minority)",
-        ylab = "Mask-Wearing Score")
-
-plot(pct_mask ~ log_pct_poverty, data = mask_train,
-        main = "Mask Wearing by % Poverty",
-        xlab = "log(percent Poverty)",
-        ylab = "Mask-Wearing Score")
-
-plot(pct_mask ~ pct_anycollege, data = mask_train,
-        main = "Mask Wearing by College",
-        xlab = "% who attended college",
-        ylab = "Mask-Wearing Score")
-
-boxplot(pct_mask ~ ru_continuum, data = mask_train,
-        main = "Mask Wearing by Rural-Urban Continuum Score",
-        xlab = "RU Score",
-        ylab = "Mask-Wearing Score")
-
-
-```
-
-
-**Political Leaning:**
-
-``` {r Political Leaning, out.width = '50%', out.height = '50%', echo = FALSE}
-
-boxplot(pct_mask ~ dem_governor, data = mask_train,
-        main = "Mask Wearing by Democratic Governor",
-        xlab = "Democratic Governor",
-        ylab = "Mask-Wearing Score")
-
-# boxplot(pct_mask ~ vote_dem, data = mask_train,
-#         main = "Mask Wearing by Voting Democrat",
-#         xlab = "Majority Voting for Democrat Party",
-#         ylab = "Mask-Wearing Score",
-#         col = "cornflowerblue")
+points(7.291, 90.025, pch = 23, bg = "#EE9988", cex = 2)
+points(5.64, 91.1, pch = 23, bg = "#77AADD", cex = 2)
+legend("bottomright", legend = c("Chloe's County", "Rena's County"), pt.bg = c("#EE9988", "#77AADD"), pch = c(23, 23), pt.cex = c(1.5,1.5), cex = 1, inset=.04,)
 
 plot(pct_mask ~ pct_trump_2020, data = mask_train,
         main = "Mask Wearing by Percent for Trump",
         xlab = "Percent of Votes for Trump",
         ylab = "Mask-Wearing Score")
+points(35.97, 90.025, pch = 23, bg = "#EE9988", cex = 2)
+points(35.64, 91.1, pch = 23, bg = "#77AADD", cex = 2)
+legend("bottomleft", legend = c("Chloe's County", "Rena's County"), pt.bg = c("#EE9988", "#77AADD"), pch = c(23, 23), pt.cex = c(1.5,1.5), cex = 1, inset=.04,)
+
+
+# plot(pct_mask ~ log_pct_seniors, data = mask_train,
+#         main = "Mask Wearing by % Seniors",
+#         xlab = "log(percent Seniors)",
+#         ylab = "Mask-Wearing Score")
+# 
+# plot(pct_mask ~ log_pct_minority, data = mask_train,
+#         main = "Mask Wearing by % Minority",
+#         xlab = "log(percent Minority)",
+#         ylab = "Mask-Wearing Score")
+# 
+# plot(pct_mask ~ log_pct_poverty, data = mask_train,
+#         main = "Mask Wearing by % Poverty",
+#         xlab = "log(percent Poverty)",
+#         ylab = "Mask-Wearing Score")
+# 
+# plot(pct_mask ~ pct_anycollege, data = mask_train,
+#         main = "Mask Wearing by College",
+#         xlab = "% who attended college",
+#         ylab = "Mask-Wearing Score")
+# 
+# boxplot(pct_mask ~ ru_continuum, data = mask_train,
+#         main = "Mask Wearing by Rural-Urban Continuum Score",
+#         xlab = "RU Score",
+#         ylab = "Mask-Wearing Score")
+# 
+# boxplot(pct_mask ~ dem_governor, data = mask_train,
+#         main = "Mask Wearing by Democratic Governor",
+#         xlab = "Democratic Governor",
+#         ylab = "Mask-Wearing Score")
+
+
 
 ```
-
-**Policies:**
+It appears as through there might be a slight positive correlation between density and mask-wearing score, and a fairly strong negative correlation between percent Trump votes and mask-wearing. This shows us that both  demographic characteristics and political characteristics of a county have associations with the county's mask-wearing behavior. (But it is also important to remember that density and percent Trump had a -0.28 correlation.) We then decided to visualize the association of mandates with mask-wearing compliance.
 
 ``` {r Mandates, out.width = '50%', out.height = '50%', echo = FALSE}
 
@@ -132,7 +142,7 @@ boxplot(pct_mask ~ state_mandate, data = mask_train,
         ylab = "Mask-Wearing Score")
 
 ```
-There appears to be a difference between counties with and without a state mandate and with and without a county mandate. Are these statistically significant? 
+Based on the side-by-side boxplots above, we see that there appears to be a difference in mask-wearing behavior for counties with state-wide and county-wide mandates: a mandate looks like it is associated with an increase in mask-wearing. To determine if these differences are statistically significant, we ran two t-tests for a difference in means with $H_0: \mu_1 = \mu_2$.
 
 ```{r T-Tests, echo = FALSE, results = "asis"}
 
@@ -141,9 +151,9 @@ state_test = t.test(pct_mask ~ state_mandate, data = mask_train)
 
 ttable <- map_df(list(county_test, state_test), tidy) %>% 
   select(estimate1, estimate2, estimate, statistic, parameter, p.value)
-ttable <- cbind(c("County Mandate", "State Mandate"), ttable)
+ttable <- cbind(c("County-level Policy", "State-level Policy"), ttable)
 
-ttable = rename(ttable, "Difference" = estimate, "No Mandate" = estimate1, "Mandate" = estimate2, "t-statistic" = statistic, "df" = parameter, "p-value" = p.value, " " = 'c("County Mandate", "State Mandate")')
+ttable = rename(ttable, "Difference" = estimate, "No Mandate" = estimate1, "Mandate" = estimate2, "t-statistic" = statistic, "df" = parameter, "p-value" = p.value, " " = 'c("County-level Policy", "State-level Policy")')
 
 
 t_table = xtable(ttable)
@@ -152,10 +162,9 @@ print(t_table, comment = FALSE, include.rownames = FALSE)
 
 ```
 
-These are unbelievably significant. But is this difference really only due to a mandate, or are there confounders here? We will look more deeply into mask compliance by county based on a wealth of different factors, through the lens of trying to decide if mask wearing is political.
+These results are unbelievably significant, so we reject the null hypothesis that there is no difference in the mask-wearing behavior in counties with and without a mandate. Yet county and state-level mandates are often a result of local politics and there has been writing, mentioned in our introduction, about how different Republicans are less likely to wear masks than Democrats. We are curious about where differences in mask-wearing behavior can be explained entirely by the county's political leaning, and if we can explain this difference using our demographic predictors such as density, percent minority, etc. This question motivates our next section, where will look more deeply into mask compliance by county through the lens of trying to decide if mask wearing is inherently political.
 
 **NEXT SECTION**
-
 
 
 
