@@ -10,6 +10,7 @@ library(tidyverse)
 library(readr)
 library(janitor)
 library(readxl)
+View(masks)
 ```
 
 ```{r}
@@ -50,13 +51,18 @@ education <- read_csv("raw_data_masks/Education.csv") %>%
   mutate(countyfp = as.character(countyfp)) %>%
   mutate(countyfp = ifelse(nchar(countyfp) == 4, paste0("0", countyfp), countyfp))
   
+View(voting)
 
 # 2020 Presidential elections
 
 voting <- read_csv("raw_data_masks/2020_US_County_Level_Presidential_Results.csv") %>%
-  select(county_fips, county_name, per_gop) %>%
+  select(county_fips, county_name, per_gop, state_name) %>%
   rename("countyfp" = "county_fips", "percent_gop" = "per_gop") %>%
   mutate(countyfp = as.character(countyfp))
+
+View(voting)
+
+View(voting)
 
 # Mask mandates
 
@@ -96,7 +102,7 @@ poverty <- read_csv("raw_data_masks/PovertyEstimates.csv") %>%
   
 # Population raw data 
 
-older_people <-  read_csv("raw_data_masks/cc-est2019-alldata-2.csv") %>%
+older_people <-  read_csv("raw_data_masks/cc-est2019-agesex-02.csv") %>%
   janitor::clean_names() %>%
   
   # Feature engineering to get the FIPS code by combining state and county
@@ -107,16 +113,12 @@ older_people <-  read_csv("raw_data_masks/cc-est2019-alldata-2.csv") %>%
   
   filter(year == 12) %>%
   
-  group_by(countyfp) %>%
+  # Creating a variable that's the percent seniors in a county
   
-# We want the proportion of the population 65 and older. These are coded with age group
-# 14 or above
-  
-  filter(agegrp > 13) %>%
-  summarise(older_people = sum(tot_pop)) %>%
+  mutate(pct_senior = age65plus_tot/popestimate) %>%
   mutate(countyfp = as.character(countyfp))
 
-total_pop <-  read_csv("raw_data_masks/cc-est2019-alldata-2.csv") %>%
+total_pop <- read_csv("raw_data_masks/cc-est2019-alldata-02.csv") %>%
   janitor::clean_names() %>%
   
   # Feature engineering to get the FIPS code by combining state and county
@@ -142,9 +144,6 @@ total_pop <-  read_csv("raw_data_masks/cc-est2019-alldata-2.csv") %>%
   select(countyfp, pct_female, pct_black, tot_pop, pct_native, pct_asian, pct_hispanic) %>%
   mutate(countyfp = as.character(countyfp))
 
-all_pop <- inner_join(older_people, total_pop, by = "countyfp") %>%
-  mutate(pct_seniors = older_people/tot_pop) %>%
-  select(-older_people)
 
 
 ```
@@ -159,6 +158,8 @@ all_pop <- inner_join(older_people, total_pop, by = "countyfp") %>%
 # character
 
 join_1 <- left_join(x = masks, y = pop, by = "countyfp")
+View()
+
 join_2 <- left_join(x = join_1, y = education, by = "countyfp")
 join_3 <- left_join(x = join_2, y = voting, by = "countyfp")
 join_4 <- left_join(x = join_3, y = mask_mandates, by = "countyfp")
@@ -242,7 +243,7 @@ voting_2016 <- read_csv("raw_data_masks/county_level_election.csv") %>%
   mutate(countyfp = as.character(countyfp)) %>%
   mutate(countyfp = ifelse(nchar(countyfp) == 4, paste0("0", countyfp), countyfp))
   
-
+View(voting_2016)
 data_2 <- readRDS("clean_data.rds") %>%
   # Adding the weighted average column Kevin suggested
   # 1 = always, 0.75 = frequently, 0.5 = sometimes, 0.25 = rarely, 0 = never

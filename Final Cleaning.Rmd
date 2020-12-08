@@ -75,8 +75,17 @@ clean_data_complete <- left_join(clean_data_2, recent_covid,
 
 sapply(clean_data_complete, function(x) sum(is.na(x)))
 
-data
+# Getting a dataset with just the incomplete observations
 
+just_na <- anti_join(clean_data_complete, data_complete)
+View(just_na)
+hist(just_na$pct_mask)
+hist(data_complete$pct_mask)
+data
+```
+
+
+```{r}
 # Finally, splitting data into test and train to save as RDS
 
 set.seed(139)
@@ -86,18 +95,21 @@ nrow(data_complete)
 
 # Carrying out the 80-20 split
 
-ids <- sample(1:round(0.8*nrow(data_complete)), replace = F)
+ids <- sample(1:nrow(data_complete), round(0.8*nrow(data_complete)), replace = F)
 data_train <- data_complete[ids,]
 data_test <- data_complete[-ids,]
+
+head(ids)
 
 # Saving everything as an RDS
 
 saveRDS(data_complete, "data_complete.RDS")
 saveRDS(data_train, "data_train.RDS")
 saveRDS(data_test, "data_test.RDS")
+
 ```
 
 ```{r}
-
+unique(data_test$state)
 ```
 
