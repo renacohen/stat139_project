@@ -2,9 +2,7 @@
 title: "Rena's Work"
 author: "Rena Cohen"
 date: "12/5/2020"
-output:
-  pdf_document: default
-  html_document: default
+output: html_document
 ---
 
 ---

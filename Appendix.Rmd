@@ -1,0 +1,267 @@
+---
+title: "Appendix"
+author: "Rena Cohen"
+date: "12/8/2020"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r include = F}
+# loading libraries
+library(caret)
+library(gt)
+library(lme4)
+library(ggplot2)
+library(tidyverse)
+library(xtable)
+data_train <- readRDS("~/Desktop/STAT 139/stat139_project/data_train.RDS")
+```
+
+**Data Cleaning and Compilation Process**
+
+We compiled data from a total of 8 different sources in order to obtain the combination of demographic, political, and public health data that we desired. We began with the data from the NYT, which was described in our main paper. Most of the cleaning was simply a matter of renaming variables, making raw counts into rates, creating indicators for countywide and statewide mandates, and merging based on county FIPS code. Once we had compiled our predictor variables and done exploratory data analysis, we transformed them within the dataset in order to help us keep track of them, renaming accoordingly (so a variable like density, which required a log transformation, became log_density in the dataset). For more information on each of our predictors and what datset they came from, see the table below:
+
+```{r, include = F,results = "asis"}
+
+variables <- read.csv("variables.csv")  %>%
+  select(-c(Description, X, Source.URL)) %>%
+  filter(!is.na(Source))
+
+
+var_table <- xtable(variables)
+
+print(var_table, comment = FALSE, include.rownames = FALSE)
+
+```
+Show in New WindowClear OutputExpand/Collapse Output
+\begin{table}[ht]
+\centering
+\begin{tabular}{ll}
+  \hline
+Name & Source \\ 
+  \hline
+countyfp & New York Times \\ 
+  always & New York Times \\ 
+  frequently & New York Times \\ 
+  sometimes & New York Times \\ 
+  rarely & New York Times \\ 
+  never & New York Times \\ 
+  cases\_02 & New York Times \\ 
+  cases\_14 & New York Times \\ 
+  cases\_27 & New York Times \\ 
+  pop\_2019 & United States Census Bureau \\ 
+  ru\_continuum & United States Census Bureau \\ 
+  density & county\_level\_election.csv from class \\ 
+  pct\_less\_than\_hs & 2014-18 American Community Survey \\ 
+  pct\_hs & 2014-18 American Community Survey \\ 
+  pct\_some\_college & 2014-18 American Community Survey \\ 
+  pct\_college & 2014-18 American Community Survey \\ 
+  pct\_poverty & U.S. Census Bureau, Small Area Income and Poverty Estimates (SAIPE) Program \\ 
+  pct\_female & U.S. Census Bureau \\ 
+  pct\_black & U.S. Census Bureau \\ 
+  pct\_native & U.S. Census Bureau \\ 
+  pct\_hispanic & U.S. Census Bureau \\ 
+  pct\_seniors & U.S. Census Bureau \\ 
+  pct\_trump\_2016 & county\_level\_election.csv from class \\ 
+  pct\_trump\_2020 & Scraped by GitHub user tonmcg from Fox News, Politico, and New York Times \\ 
+  dem\_governor & National Governor's Association \\ 
+  state\_mandate & Axios \\ 
+  county\_mandate & Harris Institute of Public Policy \\ 
+   \hline
+\end{tabular}
+\end{table}
+
+**Dealing with Missing Data: Writeup**
+
+```{r}
+clean_data_complete_ny <- read_csv("raw_data_masks/clean_data_complete.csv")
+
+data_complete <- na.omit(clean_data_complete_ny)
+
+```
+
+
+As mentioned in our paper, we had 127 rows with at least one missing predictor value. 28 of these rows were from Alaska, all of which were missing county-level data for both the 2016 and 2020 elections due to the fact that Alaska reports election results using boroughs instead of counties. Because partisanship was such a key variable in many of our models and because this data was not easily accessible for Alaska (even the cleaned data sets we used in class did not have it), we decided to exclude Alaska from our models entirely, understanding that any conclusions we came to would not be able to be reasonably generalized to this state.
+
+Beyond the total omission of political data from Alaska, the next most worrying part of our predictor data was the fact that case rates were missing for five extremely populous counties in New York City with over a million residents each. Upon further investigation, we realized that this was because (for reasons unknown to us) New York City reports its COVID-19 data in most sources as a full unit rather than as the 5 different counties it can be broken up into. In order to remedy this, we manually inputed values for current December case rates by searching for them online, allowing us to include them in our mixed model for predicting current case rates from mask-wearing in July. Unfortunately, we could not easily find COVID-19 data for these counties available in July at the county level, but we ultimately did not end up using this predictor in any of our final models, limiting the adverse impact of this missing data.
+
+The rest of the missing data primarily came in the form of missing case/death rates from July in small, rural counties; more than likely, these counties simply were not publishing information about their case rates at that time, or they did not yet have any cases at all. After conducting a two sample t-test, we determined that these counties were more rural, male, Republican, older, and slightly more college educated, more white, and less likely to wear masks than the counties in the full data set. There was not a statistically significant difference in the poverty rate. Although this finding implicates that the data we ended up using slightly underestimates small, rural, Republican counties, the entire premise of analyzing data at the county level inherently *overepresents* these counties, because they have far smaller populations than urban, Democratic counties. To illustrate, even though counties with missing data (not including NY or AK) represented 2.96% of the *counties* in our dataset, they contained just 0.11% of the current US *population*. While this could have been addressed by weighting our data by county population, doing so negatively affected many of our diagnostic plots (i.e. made them nonlinear) and prevented our mixed model from converging. All that is to say, we did not end up weighting by population, so our missing county-level data slightly underestimates the influence of rural counties, but puts us a little closer to the reality of the American population at large.
+
+```{r include = F}
+# Removing NY and AK from the dataset of just rows with missing data
+# values
+
+clean_data_complete_ny <- read_csv("raw_data_masks/clean_data_complete.csv")
+
+data_complete <- na.omit(clean_data_complete_ny)
+
+just_na <- anti_join(clean_data_complete_ny, data_complete)
+
+just_na <- just_na %>%
+  filter(state != "NY" & 
+          state != "AK")
+
+# Creating a datset with only rows without missing data
+
+full = na.omit(data_complete)
+
+# Conducting a series of two sample t-tests comparing characteristics of 
+# rows that were missing data with rows that were not
+
+t.test(just_na$pct_mask, full$pct_mask)
+t.test(just_na$density, full$density)
+t.test(just_na$pct_female, full$pct_female)
+t.test(just_na$pct_trump_2020, full$pct_trump_2020)
+t.test(just_na$log_pct_seniors, full$log_pct_seniors)
+t.test(just_na$pct_anycollege, full$pct_anycollege)
+t.test(just_na$log_pct_minority, full$log_pct_minority)
+t.test(just_na$log_pct_poverty, full$log_pct_poverty)
+```
+
+**Models and Diagnostic Plots**
+
+**Mask Wearing Section**
+
+```{r evaluate = F}
+# Running logistic regression
+
+data_train = readRDS("~/Desktop/STAT 139/stat139_project/data_train.RDS")
+logit_1 = glm(county_mandate~pct_trump_2020, data = data_train, family = "binomial")
+dummy.pct = seq(0,100,1)
+yhat = predict(logit_1, new = data.frame(pct_trump_2020 = dummy.pct))
+phat = exp(yhat)/(1+exp(yhat))
+
+
+# Making a plot 
+
+plot(county_mandate~pct_trump_2020, data = data_train, cex = 0.5, pch = 16, col = rgb(0.2,0.2,0.2,0.1), ylab = "Odds of a Countwide Mandate",
+     xlab = "Percent Trump Votes, 2020", 
+     main = "Mandate Odds vs. Partisanship")
+lines(phat~dummy.pct, col = "dodgerblue", lwd = 2)
+```
+
+
+```{r include = F}
+
+# Building Models
+has_man <- data_train %>%
+  na.omit(county_mandate)
+
+lm_trump_quad <- lm(pct_mask~pct_trump_2020 + I(pct_trump_2020^2), data = has_man)
+lm_trump_quad_mandate <- lm(pct_mask~pct_trump_2020 + I(pct_trump_2020^2) + county_mandate, data = has_man)
+anova(lm_trump_quad, lm_trump_quad_mandate)
+summary(lm_trump_quad_mandate)
+
+lm_trump_quad_mandate_interact <- lm(pct_mask~pct_trump_2020 + I(pct_trump_2020^2) + county_mandate +
+                       pct_trump_2020*county_mandate + 
+                       I(pct_trump_2020^2)*county_mandate, 
+           data = has_man)
+
+anova(lm_trump_quad_mandate, lm_trump_quad_mandate_interact)
+
+lm_trump_state <- lm(pct_mask~ pct_trump_2020 + I(pct_trump_2020^2) + state_mandate +  county_mandate, data = has_man)
+summary(lm_trump_state)
+
+anova(lm_trump_quad_mandate, lm_trump_state)
+
+lm_trump_state_interact <- lm(pct_mask~ pct_trump_2020 + I(pct_trump_2020^2) + state_mandate +
+             county_mandate + state_mandate:county_mandate, 
+           data = has_man)
+
+anova(lm_trump_state, lm_trump_state_interact)
+```
+
+Formula and output for our final model to predict mask wearing from mandates;
+
+```{r include = F}
+xtable(lm_trump_state_interact)
+```
+% latex table generated in R 4.0.2 by xtable 1.8-4 package
+% Tue Dec  8 21:48:34 2020
+\begin{table}[ht]
+\centering
+\begin{tabular}{rrrrr}
+  \hline
+ & Estimate & Std. Error & t value & Pr($>$$|$t$|$) \\ 
+  \hline
+(Intercept) & 82.8495 & 1.7211 & 48.14 & 0.0000 \\ 
+  pct\_trump\_2020 & -0.0864 & 0.0596 & -1.45 & 0.1475 \\ 
+  I(pct\_trump\_2020\verb|^|2) & -0.0016 & 0.0005 & -3.12 & 0.0018 \\ 
+  state\_mandate & 7.4699 & 0.5883 & 12.70 & 0.0000 \\ 
+  county\_mandate & 6.3295 & 0.4351 & 14.55 & 0.0000 \\ 
+  state\_mandate:county\_mandate & -4.8829 & 0.7464 & -6.54 & 0.0000 \\ 
+   \hline
+\end{tabular}
+\end{table}
+
+```{r}
+# Checking assumptions
+plot(lm_trump_state_interact)
+```
+
+Overall, diagnostics look fairly good, particularly linearity and constant variance. Some slight deviation in the qqplot in the tails, but nothing too worrisome. We do have an outlier in the x direction, as shown on the leverage vs. standradized residual plot, but it does not have a large residual, suggesting it is not too influential.
+
+```{r include = F}
+# Here is the bootstrapped confidence interval
+nsims = 1000
+difs = rep(NA, nsims)
+for(i in 1:nsims){
+  # sample some data
+  boot = data_train[sample(1:nrow(has_man), size = nrow(has_man),
+                                                           replace = T),]
+  # fit the model and recalculate betas
+  lm.boot = lm(formula(lm_trump_state_interact), data = boot)
+  
+  # pull off the two relevant coefficients
+  
+  difs[i] = coef(lm.boot)[5]+coef(lm.boot)[6]
+  
+  
+}
+
+ci.boot <- quantile(difs, c(0.025, 0.975))
+ci.boot
+```
+
+**Code and Assumption Checking Mixed Effects**
+
+```{r, include = F}
+
+# Calculating the various mixed effects models
+lmer_state <- lmer(log_case_rate_december~
+                     (1|state),
+                   data = data_train, REML = F)
+summary(lmer_state)
+exp(8.18974)
+
+lmer_state_density <- lmer(log_case_rate_december~
+                     (1|state) + log_density,
+                   data = data_train, REML = F)
+
+lmer_state_mask <- lmer(log_case_rate_december~pct_mask + (1|state), data = data_train, REML = F)
+summary(lmer_state_mask)
+
+anova(lmer_state_mask, lmer_state)
+```
+
+```{r}
+# Assumption Checking for final mixed effects
+
+# Checking linearity and constant variance
+plot(residuals(lmer_state_mask)~predict(lmer_state_mask))
+
+# checking normality of residuals
+qqnorm(residuals(lmer_state_mask))
+qqline(residuals(lmer_state_mask))
+
+# Checking normality of random intercepts
+qqnorm(coef(lmer_state_mask)$state[['(Intercept)']])
+qqline(coef(lmer_state_mask)$state[['(Intercept)']])
+hist(coef(lmer_state_mask)$state[['(Intercept)']])
+```
+Linearity seems to be a reasonable assumption, as points are clustered randomly around 0 (note: the clusters are because the magnitude of the random effect of state is much bigger than that of the fixed effect of `pct_mask`. There does not appear to be evidence of heteroskedasticity. Normality of residuals looks fairly good; they deviate a bit more than expected at the tails, but do so in a symmetric way. The qqplot for the distribution of the random effects for state is slightly concerning in that it is left skewed ; more than anything else, this suggests that a log transformation on case rates may have been an overcorrect. While this will not bias our estimates, it could lead to unrealistic standard errors for the random effect of `state`, which we were wary of when interpreting this model.
+
+
+```{r include = F}
+nrow(just_na)/nrow(data_complete)

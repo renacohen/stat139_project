@@ -1,0 +1,36 @@
+"","Name","Description","Source","Source URL"
+"1","countyfp","County level FIPS (Federal Information Processing System) code. Unique for each American county.","New York Times","https://github.com/nytimes/covid-19-data/blob/master/mask-use/mask-use-by-county.csv"
+"2","county_name","Name of the county",NA,NA
+"3","state","state the county is located in",NA,NA
+"4","pct_mask","An aggregate variable representing the probability that a randomly selected person in a county will wear a mask. Calculated by 1*(always) + 0.75*(frequently)+0.5*(sometimes)+0.25*(rarely)+0*(never)",NA,NA
+"5","always","Percentage of people  who answered they ""always"" wear a mask","New York Times","https://github.com/nytimes/covid-19-data/blob/master/mask-use/mask-use-by-county.csv"
+"6","frequently","Percentage of peoplewho answered they frequently wear a mask","New York Times","https://github.com/nytimes/covid-19-data/blob/master/mask-use/mask-use-by-county.csv"
+"7","sometimes","Percentage of people  who answered they sometimes wear a mask","New York Times","https://github.com/nytimes/covid-19-data/blob/master/mask-use/mask-use-by-county.csv"
+"8","rarely","Percentage of peoplewho answered they rarely wear a mask","New York Times","https://github.com/nytimes/covid-19-data/blob/master/mask-use/mask-use-by-county.csv"
+"9","never","Percentage of people who answered they never wear a mask","New York Times","https://github.com/nytimes/covid-19-data/blob/master/mask-use/mask-use-by-county.csv"
+"10","cases_02","Number of COVID-19 cases on 07/02/2020","New York Times","https://github.com/nytimes/covid-19-data"
+"11","deaths_02","Number of COVID-19 deaths on 07/02/2020",NA,"https://github.com/nytimes/covid-19-data"
+"12","cases_14","Number of COVID-19 cases on 07/14/2020","New York Times","https://github.com/nytimes/covid-19-data"
+"13","deaths_14","Number of COVID-19 deaths  on 07/14/2020",NA,"https://github.com/nytimes/covid-19-data"
+"14","cases_27","Number of COVID-19 cases on 07/27/2020","New York Times","https://github.com/nytimes/covid-19-data"
+"15","deaths_27","Number of COVID-19 deaths  on 07/27/2020",NA,"https://github.com/nytimes/covid-19-data"
+"16","case_growth_1","cases_14/cases_02",NA,NA
+"17","case_growth_2","cases_27/cases_14",NA,NA
+"18","pop_2019","Population estimate in 2019","United States Census Bureau","https://www.census.gov/newsroom/press-kits/2019/national-state-estimates.html"
+"19","ru_continuum","1 to 10 rating on the Rural-Urban Continuum","United States Census Bureau","https://www.census.gov/newsroom/press-kits/2019/national-state-estimates.html"
+"20","density","Population density of the county","county_level_election.csv from class",NA
+"21","pct_less_than_hs","Percent of adults with less than a high school diploma, 2014-18","2014-18 American Community Survey","https://www.ers.usda.gov/data-products/county-level-data-sets/download-data/"
+"22","pct_hs","Percent of adults with a high school diploma only, 2014-18","2014-18 American Community Survey","https://www.ers.usda.gov/data-products/county-level-data-sets/download-data/"
+"23","pct_some_college","Percent of adults completing some college or associate's degree, 2014-18","2014-18 American Community Survey","https://www.ers.usda.gov/data-products/county-level-data-sets/download-data/"
+"24","pct_college","Percent of adults with a bachelor's degree or higher, 2014-18","2014-18 American Community Survey","https://www.ers.usda.gov/data-products/county-level-data-sets/download-data/"
+"25","pct_poverty","Percentage of people estimated to be living in poverty in 2018","U.S. Census Bureau, Small Area Income and Poverty Estimates (SAIPE) Program","https://www.ers.usda.gov/data-products/county-level-data-sets/download-data/"
+"26","pct_female","Percentage of females in county, 2019","U.S. Census Bureau","https://www.census.gov/newsroom/press-kits/2020/population-estimates-detailed.html"
+"27","pct_black","Percentage of Black/African-American residents in county, 2019","U.S. Census Bureau","https://www.census.gov/newsroom/press-kits/2020/population-estimates-detailed.html"
+"28","pct_native","Percentage of American Indian or Alaskan Native people in county, 2019","U.S. Census Bureau","https://www.census.gov/newsroom/press-kits/2020/population-estimates-detailed.html"
+"29","pct_hispanic","Percentage of Hispanic people in county, 2019","U.S. Census Bureau","https://www.census.gov/newsroom/press-kits/2020/population-estimates-detailed.html"
+"30","pct_seniors","Percentage of adults 65 or over in county, 2019","U.S. Census Bureau","https://www.census.gov/newsroom/press-kits/2020/population-estimates-detailed.html"
+"31","pct_trump_2016","Percentage of county who voted for Donald Trump in 2016","county_level_election.csv from class",NA
+"32","pct_trump_2020","Percentage of county who voted for Donald Trump in 2020","Scraped by GitHub user tonmcg from Fox News, Politico, and New York Times","https://github.com/tonmcg/US_County_Level_Election_Results_08-20"
+"33","dem_governor","Dummy variable coded 1 if the state has a Democratic governor","National Governor's Association","https://www.nga.org/wp-content/uploads/2019/07/Governors-Roster.pdf"
+"34","state_mandate","Dummy variable coded 1 if a statewide mask mandate was enacted before 07/14/2020","Axios","https://www.axios.com/states-face-coverings-mandatory-a0e2fe35-5b7b-458e-9d28-3f6cdb1032fb.html"
+"35","county_mandate","Dummy variable coded 1 if there was a county-wide mask mandate enacted before -7/14/2020","Harris Institute of Public Policy","https://www.austinlwright.com/covid-research"

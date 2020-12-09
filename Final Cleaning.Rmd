@@ -14,8 +14,10 @@ clean_data_2 <- readRDS("clean_data_2.rds")
 
 # Merging in the NYT data from recent days
 recent_covid <- read_csv("raw_data_masks/recent_covid.csv") %>%
-  select(fips, cases, deaths) %>%
+  select(fips, cases, deaths, state, county) %>%
   rename(countyfp = fips)
+
+View(recent_covid)
 
 # Note that this is Data from December 5th
 
@@ -75,13 +77,33 @@ clean_data_complete <- left_join(clean_data_2, recent_covid,
 
 sapply(clean_data_complete, function(x) sum(is.na(x)))
 
-# Getting a dataset with just the incomplete observations
+# Getting a dataset with just the incomplete observations... easier to 
+# edit this data in excel
 
-just_na <- anti_join(clean_data_complete, data_complete)
+write.csv(clean_data_complete, "clean_data_complete.csv")
+
+# Adding back in with the NYC numbers
+
+clean_data_complete_ny <- read_csv("raw_data_masks/clean_data_complete.csv")
+
+lm <- lm(pct_mask~log_case_rate_july, data = clean_data_complete)
+summary(lm)
+data_complete = na.omit(clean_data_complete_ny)
+
+just_na <- anti_join(clean_data_complete_ny, data_complete)
 View(just_na)
 hist(just_na$pct_mask)
 hist(data_complete$pct_mask)
 data
+just_na
+View(just_na)
+nrow(just_na)/nrow(data_complete)
+
+just_na %>%
+  filter(state != "NY" & 
+          state != "AK") %>%
+  summarise(pop = sum(pop_2019))
+  
 ```
 
 
@@ -90,7 +112,7 @@ data
 
 set.seed(139)
 
-data_complete <- na.omit(clean_data_complete)
+data_complete <- read_csv("raw_data_masks/clean_data_complete.csv")
 nrow(data_complete)
 
 # Carrying out the 80-20 split
@@ -107,9 +129,60 @@ saveRDS(data_complete, "data_complete.RDS")
 saveRDS(data_train, "data_train.RDS")
 saveRDS(data_test, "data_test.RDS")
 
+View(voting)
+
 ```
 
 ```{r}
 unique(data_test$state)
+
+# Whoops, we're missing Alaska! Here's me trying to put it back in
+
+data_complete <- readRDS("data_complete.RDS")
+
+data_complete <- inner_join(data_complete, voting, by = "countyfp")
+
+View(data_complete)
+
+View(just_na)
+```
+
+**Data Cleaning and Compilation Process**
+
+We compiled data from a total of 8 different sources in order to obtain the combination of demographic, political, and public health data that we desired. We began with the data from the NYT, which was described in our main paper. Most of the cleaning was simply a matter of renaming variables, making raw counts into rates, creating indicators for countywide and statewide mandates, and merging based on county FIPS code. Once we had compiled our predictor variables and done exploratory data analysis, we transformed them within the dataset in order to help us keep track of them, renaming accoordingly (so a variable like density, which required a log transformation, became log_density in the dataset). For more information on each of our predictors and what datset they came from, see the table below:  
+
+**Dealing with Missing Data: Writeup**
+
+As mentioned in our paper, we had 127 rows with at least one missing predictor value. 28 of these rows were from Alaska, all of which were missing county-level data for both the 2016 and 2020 elections due to the fact that Alaska reports election results using boroughs instead of counties. Because partisanship was such a key variable in many of our models and because this data was not easily accessible for Alaska (even the cleaned data sets we used in class did not have it), we decided to exclude Alaska from our models entirely, understanding that any conclusions we came to would not be able to be reasonably generalized to this state.
+
+Beyond the total omission of political data from Alaska, the next most worrying part of our predictor data was the fact that case rates were missing for five extremely populous counties in New York City with over a million residents each. Upon further investigation, we realized that this was because (for reasons unknown to us) New York City reports its COVID-19 data in most sources as a full unit rather than as the 5 different counties it can be broken up into. In order to remedy this, we manually inputed values for current December case rates by searching for them online, allowing us to include them in our mixed model for predicting current case rates from mask-wearing in July. Unfortunately, we could not easily find COVID-19 data for these counties available in July at the county level, but we ultimately did not end up using this predictor in any of our final models, limiting the adverse impact of this missing data.
+
+The rest of the missing data primarily came in the form of missing case/death rates from July in small, rural counties; more than likely, these counties simply were not publishing information about their case rates at that time, or they did not yet have any cases at all. After conducting a two sample t-test, we determined that these counties were more rural, male, Republican, older, and slightly more college educated, more white, and less likely to wear masks than the counties in the full data set. There was not a statistically significant difference in the poverty rate. Although this finding implicates that the data we ended up using slightly underestimates small, rural, Republican counties, the entire premise of analyzing data at the county level inherently *overepresents* these counties, because they have far smaller populations than urban, Democratic counties. To illustrate, even though counties with missing data (not including NY or AK) represented 2.96% of the *counties* in our dataset, they contained just 0.11% of the current US *population*. While this could have been addressed by weighting our data by county population, doing so negatively affected many of our diagnostic plots (i.e. made them nonlinear) and prevented our mixed model from converging. All that is to say, we did not end up weighting by population, so our missing county-level data slightly underestimates the influence of rural counties, but puts us a little closer to the reality of the American population at large.
+
+```{r}
+# Removing NY and AK from the dataset of just rows with missing data
+# values
+
+just_na <- just_na %>%
+  filter(state != "NY" & 
+          state != "AK")
+
+# Creating a datset with only rows without missing data
+
+full = na.omit(data_complete)
+
+# Conducting a series of two sample t-tests comparing characteristics of 
+# rows that were missing data with rows that were not
+
+t.test(just_na$pct_mask, full$pct_mask)
+t.test(just_na$density, full$density)
+t.test(just_na$pct_female, full$pct_female)
+t.test(just_na$pct_trump_2020, full$pct_trump_2020)
+t.test(just_na$log_pct_seniors, full$log_pct_seniors)
+t.test(just_na$pct_anycollege, full$pct_anycollege)
+t.test(just_na$log_pct_minority, full$log_pct_minority)
+t.test(just_na$log_pct_poverty, full$log_pct_poverty)
+
+nrow(just_na)/nrow(data_complete)
 ```
 

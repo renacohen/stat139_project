@@ -233,6 +233,7 @@ covid_14 <- read_csv("raw_data_masks/us-counties.csv") %>%
   rename("countyfp" = fips, "cases_14" = cases, "deaths_14" = deaths) %>%
   mutate(countyfp = as.character(countyfp))
 
+View(voting)
 
 # But I will add the 2016 county level election results in case we want
 # to use those instead of 2020
