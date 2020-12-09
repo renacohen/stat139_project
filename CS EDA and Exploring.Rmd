@@ -155,10 +155,8 @@ ttable <- cbind(c("County-level Policy", "State-level Policy"), ttable)
 
 ttable = rename(ttable, "Difference" = estimate, "No Mandate" = estimate1, "Mandate" = estimate2, "t-statistic" = statistic, "df" = parameter, "p-value" = p.value, " " = 'c("County-level Policy", "State-level Policy")')
 
-
 t_table = xtable(ttable)
 print(t_table, comment = FALSE, include.rownames = FALSE)
-
 
 ```
 
