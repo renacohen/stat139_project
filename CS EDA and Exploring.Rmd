@@ -144,7 +144,7 @@ boxplot(pct_mask ~ state_mandate, data = mask_train,
 ```
 Based on the side-by-side boxplots above, we see that there appears to be a difference in mask-wearing behavior for counties with state-wide and county-wide mandates: a mandate looks like it is associated with an increase in mask-wearing. To determine if these differences are statistically significant, we ran two t-tests for a difference in means with $H_0: \mu_1 = \mu_2$.
 
-```{r T-Tests, echo = FALSE, results = "asis"}
+```{r T-Tests, echo = FALSE,  }
 
 county_test = t.test(pct_mask ~ county_mandate, data = mask_train)
 state_test = t.test(pct_mask ~ state_mandate, data = mask_train)
@@ -162,7 +162,7 @@ print(t_table, comment = FALSE, include.rownames = FALSE)
 
 ```
 
-These results are unbelievably significant, so we reject the null hypothesis that there is no difference in the mask-wearing behavior in counties with and without a mandate. Yet county and state-level mandates are often a result of local politics and there has been writing, mentioned in our introduction, about how different Republicans are less likely to wear masks than Democrats. We are curious about where differences in mask-wearing behavior can be explained entirely by the county's political leaning, and if we can explain this difference using our demographic predictors such as density, percent minority, etc. This question motivates our next section, where will look more deeply into mask compliance by county through the lens of trying to decide if mask wearing is inherently political.
+These results are unbelievably significant, so we reject the null hypothesis that there is no difference in the mask-wearing behavior in counties with and without a mandate. Yet county and state-level mandates are often a result of local politics and there has been writing, mentioned in our introduction, about how different Republicans are less likely to wear masks than Democrats. But we are curious about whether differences in mask-wearing behavior can be explained entirely by the county's political leaning, and if we can explain this difference using our demographic predictors such as density, percent minority, etc. This question motivates our next section, where will look more deeply into mask compliance by county through the lens of trying to decide if mask wearing is inherently political.
 
 **NEXT SECTION**
 
