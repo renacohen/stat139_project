@@ -17,8 +17,7 @@ library(tidyverse)
 library(xtable)
 data_train <- readRDS("~/Desktop/STAT 139/stat139_project/data_train.RDS")
 ```
-
-**Data Cleaning and Compilation Process**
+\section{Data Cleaning and Compilation Process}
 
 We compiled data from a total of 8 different sources in order to obtain the combination of demographic, political, and public health data that we desired. We began with the data from the NYT, which was described in our main paper. Most of the cleaning was simply a matter of renaming variables, making raw counts into rates, creating indicators for countywide and statewide mandates, and merging based on county FIPS code. Once we had compiled our predictor variables and done exploratory data analysis, we transformed them within the dataset in order to help us keep track of them, renaming accoordingly (so a variable like density, which required a log transformation, became log_density in the dataset). For more information on each of our predictors and what datset they came from, see the table below:
 
@@ -34,7 +33,7 @@ var_table <- xtable(variables)
 print(var_table, comment = FALSE, include.rownames = FALSE)
 
 ```
-Show in New WindowClear OutputExpand/Collapse Output
+
 \begin{table}[ht]
 \centering
 \begin{tabular}{ll}
@@ -72,9 +71,9 @@ countyfp & New York Times \\
 \end{tabular}
 \end{table}
 
-**Dealing with Missing Data: Writeup**
+**Handling Missing Data**
 
-```{r}
+```{r include = F}
 clean_data_complete_ny <- read_csv("raw_data_masks/clean_data_complete.csv")
 
 data_complete <- na.omit(clean_data_complete_ny)
@@ -119,26 +118,18 @@ t.test(just_na$log_pct_minority, full$log_pct_minority)
 t.test(just_na$log_pct_poverty, full$log_pct_poverty)
 ```
 
-**Models and Diagnostic Plots**
+\section{Models and Diagnostic Plots}
 
-**Mask Wearing Section**
+**Section 2: Mask Mandate Models and Diagnostics**
 
-```{r evaluate = F}
+Here is the summary and output for our logistic model (called `logit_1`)
+
+```{r echo = F}
 # Running logistic regression
 
 data_train = readRDS("~/Desktop/STAT 139/stat139_project/data_train.RDS")
 logit_1 = glm(county_mandate~pct_trump_2020, data = data_train, family = "binomial")
-dummy.pct = seq(0,100,1)
-yhat = predict(logit_1, new = data.frame(pct_trump_2020 = dummy.pct))
-phat = exp(yhat)/(1+exp(yhat))
-
-
-# Making a plot 
-
-plot(county_mandate~pct_trump_2020, data = data_train, cex = 0.5, pch = 16, col = rgb(0.2,0.2,0.2,0.1), ylab = "Odds of a Countwide Mandate",
-     xlab = "Percent Trump Votes, 2020", 
-     main = "Mandate Odds vs. Partisanship")
-lines(phat~dummy.pct, col = "dodgerblue", lwd = 2)
+summary(logit_1)
 ```
 
 
@@ -172,13 +163,12 @@ lm_trump_state_interact <- lm(pct_mask~ pct_trump_2020 + I(pct_trump_2020^2) + s
 anova(lm_trump_state, lm_trump_state_interact)
 ```
 
-Formula and output for our final model to predict mask wearing from mandates;
+Here is the formula and output for our final model to predict mask wearing from state and county mask mandates with an interaction term (called `lm_trump_state_interact`):
 
 ```{r include = F}
 xtable(lm_trump_state_interact)
 ```
-% latex table generated in R 4.0.2 by xtable 1.8-4 package
-% Tue Dec  8 21:48:34 2020
+
 \begin{table}[ht]
 \centering
 \begin{tabular}{rrrrr}
@@ -195,12 +185,13 @@ xtable(lm_trump_state_interact)
 \end{tabular}
 \end{table}
 
-```{r}
+Next, we needed to check the assumptions for this model: diagnostic plots are shown below
+```{r echo = F, out.width = '50%', out.height = '50%'}
 # Checking assumptions
 plot(lm_trump_state_interact)
 ```
 
-Overall, diagnostics look fairly good, particularly linearity and constant variance. Some slight deviation in the qqplot in the tails, but nothing too worrisome. We do have an outlier in the x direction, as shown on the leverage vs. standradized residual plot, but it does not have a large residual, suggesting it is not too influential.
+Overall, diagnostics look fairly good, particularly linearity and constant variance. There is some slight deviation in the qqplot in the tails, but nothing too worrisome. We do have an outlier in the x direction, as shown on the leverage vs. standradized residual plot, but it does not have a large residual and is well within the Cook's distance lines, suggesting it is not too influential. 
 
 ```{r include = F}
 # Here is the bootstrapped confidence interval
@@ -217,14 +208,12 @@ for(i in 1:nsims){
   
   difs[i] = coef(lm.boot)[5]+coef(lm.boot)[6]
   
-  
 }
-
 ci.boot <- quantile(difs, c(0.025, 0.975))
 ci.boot
 ```
 
-**Code and Assumption Checking Mixed Effects**
+**December Case Prediction Assumption Checking and Models**
 
 ```{r, include = F}
 
@@ -245,23 +234,35 @@ summary(lmer_state_mask)
 anova(lmer_state_mask, lmer_state)
 ```
 
-```{r}
+Here is the summary and output for our final mixed effects model, `lmer_state_mask`
+
+```{r echo = F}
+lmer_state_mask <- lmer(log_case_rate_december~pct_mask + (1|state), data = data_train, REML = F)
+summary(lmer_state_mask)
+
+```
+And here are the diagnostic plots for the mixed model. Note that in addition to the standard assumptions of linearity, normality of residuals, and constant variance, we must also check the assumption that the random intercepts for states are normally distributed. 
+
+```{r echo = F, out.width = '50%', out.height = '50%'}
 # Assumption Checking for final mixed effects
 
 # Checking linearity and constant variance
-plot(residuals(lmer_state_mask)~predict(lmer_state_mask))
+plot(residuals(lmer_state_mask)~predict(lmer_state_mask),
+     main = "Residuals vs. Fitted, lmer_state_mask",
+     xlab = "Fitted Values for Log_case_rate_December",
+     ylab = "Residuals")
 
 # checking normality of residuals
-qqnorm(residuals(lmer_state_mask))
+qqnorm(residuals(lmer_state_mask), 
+       main = "Q-Q Plot for Residuals")
 qqline(residuals(lmer_state_mask))
 
 # Checking normality of random intercepts
-qqnorm(coef(lmer_state_mask)$state[['(Intercept)']])
+qqnorm(coef(lmer_state_mask)$state[['(Intercept)']],
+       main = "Q-Q Plot for Random Intercepts")
 qqline(coef(lmer_state_mask)$state[['(Intercept)']])
-hist(coef(lmer_state_mask)$state[['(Intercept)']])
+hist(coef(lmer_state_mask)$state[['(Intercept)']],
+     main = "Histogram of Random Intercepts",
+     xlab = "Random Intercept for State")
 ```
-Linearity seems to be a reasonable assumption, as points are clustered randomly around 0 (note: the clusters are because the magnitude of the random effect of state is much bigger than that of the fixed effect of `pct_mask`. There does not appear to be evidence of heteroskedasticity. Normality of residuals looks fairly good; they deviate a bit more than expected at the tails, but do so in a symmetric way. The qqplot for the distribution of the random effects for state is slightly concerning in that it is left skewed ; more than anything else, this suggests that a log transformation on case rates may have been an overcorrect. While this will not bias our estimates, it could lead to unrealistic standard errors for the random effect of `state`, which we were wary of when interpreting this model.
-
-
-```{r include = F}
-nrow(just_na)/nrow(data_complete)
+Linearity seems to be a reasonable assumption, as points are clustered randomly around 0 (note: the visible vertical clusters appear because the magnitude of the random effect of state is much bigger than that of the fixed effect of `pct_mask`, thus ensuring that the points for a state fall more or less in a line). There does not appear to be evidence of heteroskedasticity. Normality of residuals looks fairly good; they deviate a bit more than expected at the tails, but do so in a symmetric way. The qqplot for the distribution of the random effects for state is slightly concerning in that it is left skewed (you can also see this in the histogram); more than anything else, this suggests that a log transformation on case rates may have been an overcorrect. While this will not bias our estimates, it could lead to unrealistic standard errors for the random effect of `state`, which we were wary of when interpreting this model.
