@@ -144,7 +144,7 @@ boxplot(pct_mask ~ state_mandate, data = mask_train,
 ```
 Based on the side-by-side boxplots above, we see that there appears to be a difference in mask-wearing behavior for counties with state-wide and county-wide mandates: a mandate looks like it is associated with an increase in mask-wearing. To determine if these differences are statistically significant, we ran two t-tests for a difference in means with $H_0: \mu_1 = \mu_2$.
 
-```{r T-Tests, echo = FALSE}
+```{r T-Tests, echo = FALSE, results = "asis"}
 
 county_test = t.test(pct_mask ~ county_mandate, data = mask_train)
 state_test = t.test(pct_mask ~ state_mandate, data = mask_train)
