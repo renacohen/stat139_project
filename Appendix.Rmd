@@ -185,7 +185,8 @@ xtable(lm_trump_state_interact)
 \end{tabular}
 \end{table}
 
-Next, we needed to check the assumptions for this model: diagnostic plots are shown below
+Next, we needed to check the assumptions for this model; diagnostic plots are shown below:
+
 ```{r echo = F, out.width = '50%', out.height = '50%'}
 # Checking assumptions
 plot(lm_trump_state_interact)
@@ -234,7 +235,7 @@ summary(lmer_state_mask)
 anova(lmer_state_mask, lmer_state)
 ```
 
-Here is the summary and output for our final mixed effects model, `lmer_state_mask`
+Here is the summary and output for our final mixed effects model, `lmer_state_mask`:
 
 ```{r echo = F}
 lmer_state_mask <- lmer(log_case_rate_december~pct_mask + (1|state), data = data_train, REML = F)
@@ -265,4 +266,18 @@ hist(coef(lmer_state_mask)$state[['(Intercept)']],
      main = "Histogram of Random Intercepts",
      xlab = "Random Intercept for State")
 ```
-Linearity seems to be a reasonable assumption, as points are clustered randomly around 0 (note: the visible vertical clusters appear because the magnitude of the random effect of state is much bigger than that of the fixed effect of `pct_mask`, thus ensuring that the points for a state fall more or less in a line). There does not appear to be evidence of heteroskedasticity. Normality of residuals looks fairly good; they deviate a bit more than expected at the tails, but do so in a symmetric way. The qqplot for the distribution of the random effects for state is slightly concerning in that it is left skewed (you can also see this in the histogram); more than anything else, this suggests that a log transformation on case rates may have been an overcorrect. While this will not bias our estimates, it could lead to unrealistic standard errors for the random effect of `state`, which we were wary of when interpreting this model.
+Linearity seems to be a reasonable assumption, as points are clustered randomly around 0 (note: the visible vertical clusters appear because the magnitude of the random effect of state is much bigger than that of the fixed effect of `pct_mask`, thus ensuring that the points for a state fall more or less in a line). There does not appear to be evidence of heteroskedasticity. Normality of residuals looks fairly good; they deviate a bit more than expected at the tails, but do so in a symmetric way. The qqplot for the distribution of the random effects for state is slightly concerning in that it is left skewed (you can also see this in the histogram); more than anything else, this suggests that a log transformation on case rates may have been an over-correct. While this will not bias our estimates, it could lead to unrealistic standard errors for the random effect of `state`, which we were wary of when interpreting this model.
+
+```{r include = F}
+# Calculating RMSE for the two mixed effects models on the test set
+
+RMSE = function(model, newdata, y){
+  yhat = predict(model, newdata = newdata)
+  RMSE = sqrt(sum((y-yhat)^2/nrow(newdata)))
+  return(RMSE)
+}
+data_test <- readRDS("~/Desktop/STAT 139/stat139_project/data_test.RDS")
+RMSE(lmer_state_mask, data_test, data_test$log_case_rate_december)
+RMSE(lmer_state, data_test, data_test$log_case_rate_december)
+```
+
