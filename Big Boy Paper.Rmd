@@ -42,11 +42,11 @@ Along with these demographic characteristics, we hypothesized that legal and pub
 
 \section{Data Collection and Wrangling}
 
-Mask-wearing frequency, which is our y-variable for much of this study, is from the aforementioned *New York Times* survey, which was conducted by the survey firm Dynata on behalf of the Times from July 2 to July 14. Aggregated at the county level, it sorts 250,000 individual responses into 3,000 U.S. counties. The survey asked respondents how often they wore a mask (choices were always, frequently, sometimes, rarely, or never) and presents the percentage of people who gave each answer for every county, which we combined into a single weighted average representing the probability that a randomly selected person is wearing a mask in the county; for more information about the rationale behind this, see the appendix. It is important to remember that this data likely carries a good amount of uncertainty stemming both from the possible variation in the interpretation of the survey response choices by individuals and because only about 80 individuals per county were surveyed (not to mention possible undercoverage/non-response bias; we do not know how the sampling procedure, but the NYT does write htat " overall the large number of responses provide rough comparisons across many areas"). 
+Mask-wearing frequency, which is our y-variable for much of this study, is from the aforementioned *New York Times* survey, which was conducted by the survey firm Dynata on behalf of the Times from July 2 to July 14. Aggregated at the county level, it sorts 250,000 individual responses into 3,000 U.S. counties. The survey asked respondents how often they wore a mask (choices were always, frequently, sometimes, rarely, or never) and presents the percentage of people who gave each answer for every county, which we combined into a single weighted average representing the probability that a randomly selected person is wearing a mask in the county; for more information about the rationale behind this, see the Appendix. It is important to remember that this data likely carries a good amount of uncertainty stemming both from the possible variation in the interpretation of the survey response choices by individuals and because only about 80 individuals per county were surveyed (not to mention possible undercoverage/non-response bias; we do not know how the sampling procedure, but the NYT does write that " overall the large number of responses provide rough comparisons across many areas"). 
 
 Our predictor variables, which included a combination of countywide demographic measurements and coronavirus-specific values, came from a variety of sources detailed in the table below. Whenever possible, we used the most recent data we could; notably, this meant that we chose to use the percentage of people who voted for Trump in 2020 as rather than in 2016 as a measure of of partisanship, as we figured this would more closely reflect the political party affiliations of county residents in July 2020 when the NYT mask-wearing survey was administered. Whenever applicable, we transformed raw counts into rates so that predictors would be comparable across counties with different total population sizes.
 
-Compiling and cleaning this data was a (mostly) smooth process, thanks to the FIPS county code, which combines a two digit state code with a 3 digit county code to create a unique, standardized 5 digit code for every US county. When the merging proccess was over, we had 127 rows containing missing data, representing about 4% of the total number of counties in our dataset. The most concerning omission was the lack of political data for Alaska; after doing more research, we learned that Alaska treats election distributing in a different way than it treats FIPS county codes, a process that has led to [unfortunate complications](https://github.com/tonmcg/US_County_Level_Election_Results_08-20/issues/2) for many a data scientist. Because our class datasets for election results likewise did not include this data for Alaska at the county level, we simply carried forward our analysis without it, with the understanding that any results we came to should not be generalized to Alaska. Other than the large group of unused Alaskan counties, we did not think that removing the rest of the counties containing missing data would greatly impact our results. For more information about how we came to this conclusion, see the data cleaning section of our appendix.
+Compiling and cleaning this data was a (mostly) smooth process, thanks to the FIPS county code, which combines a two digit state code with a 3 digit county code to create a unique, standardized 5 digit code for every US county. When the merging proccess was over, we had 127 rows containing missing data, representing about 4% of the total number of counties in our dataset. The most concerning omission was the lack of political data for Alaska; after doing more research, we learned that Alaska treats election districting in a different way than it treats FIPS county codes, a process that has led to [unfortunate complications](https://github.com/tonmcg/US_County_Level_Election_Results_08-20/issues/2) for many a data scientist. Because our class datasets for election results likewise did not include this data for Alaska at the county level, we simply carried forward our analysis without it, with the understanding that any results we came to should not be generalized to Alaska. Other than the large group of unused Alaskan counties, we did not think that removing the rest of the counties containing missing data would greatly impact our results. For more information about how we came to this conclusion, see the data cleaning section of our Appendix.
 
 \section{Exploratory Data Analysis}
 
@@ -188,6 +188,8 @@ interceptmodel = lm(pct_mask ~ 1, data = mask_train)
 
 fullmodel = lm(pct_mask ~ pop_2019 + log_pct_seniors + ru_continuum + pct_trump_2020 + log_pct_minority + dem_governor + pct_anycollege + log_density + pct_female + log_pct_poverty,
                data = mask_train)
+
+summary(fullmodel)
 
 interactionmodel = lm(pct_mask ~ (pop_2019 + log_pct_seniors + ru_continuum + pct_trump_2020 + log_pct_minority + dem_governor + pct_anycollege + log_density + pct_female + log_pct_poverty)^2,
                data = mask_train)
@@ -335,7 +337,7 @@ rf apolitical model & 7.959 & 8.465 \\
 
 From this final RMSE table, we can make a few observations. The model that performed best on the test data was the linear model with all interaction terms. Some of our models appear to be a little bit overfit, but nothing drastic. Finally, and most importantly, in both the linear models and decision tree/random forest models, the apolitical models outperformed the political models on train and test data. 
 
-This tells us, tentatively, that we can explain more variability in mask-wearing behavior between counties with demographic predictors as we can with politcal predictors. Mask-wearing may not be inherently political.
+This tells us, tentatively, that we can explain more variability in mask-wearing behavior between counties with demographic predictors as we can with political predictors. Politics may inform people's choice to wear a mask, but it seems that their identity and enviornment have a signficiant role in this decision as well.
 
 \hfill
 
@@ -364,7 +366,7 @@ plot(county_mandate~pct_trump_2020, data = data_train, cex = 0.5, pch = 16, col 
 lines(phat~dummy.pct, col = "dodgerblue", lwd = 2)
 ```
 
-Clearly, partisanship is a strong predictor of whether a county has a mask mandate in place in the first place (which makes sense given that leaders in local governments who make masking policies naturally represent the political beliefs of their constituents). Are the differences in what types of counties have mandates enough to explain away differences in mask wearing behavior? To address this question, we conducted an ESS F test to compare a linear model predicting mask wearing (lm_trump_quad) from just partisanship on the training set to a linear model with both partisanship and a mask mandate as a predictor (in both these cases, partisanship was fitted using a polynomial of degree 2, as this seemed to better account for regression assumptions and explain non-linearities in the data). We found that the addition of the mask mandate was statistically significant (F = 356.78, p < 0.0001): After controlling for partisanship, the predicted increase in the probability that a person in a county with a mandate was wearing a mask was  6.3918896. 
+Clearly, partisanship is a strong predictor of whether a county has a mask mandate in place in the first place (which makes sense given that leaders in local governments who make masking policies naturally represent the political beliefs of their constituents). Are the differences in what types of counties have mandates enough to explain away differences in mask wearing behavior? To address this question, we conducted an ESS F test to compare a linear model predicting mask wearing from just partisanship on the training set (`lm_trump_quad`) to a linear model with both partisanship and a mask mandate as a predictor (`lm_trump_quad_mandate`). In both these cases, partisanship was fitted using a polynomial of degree 2, as this seemed to better account for regression assumptions and explain non-linearities in the data. We found that the addition of the mask mandate was statistically significant (F = 356.78, p < 0.0001, as shown below): After controlling for partisanship, the predicted increase in `pct_mask` was 6.3918896. 
 
 ```{r include = F}
 has_man <- data_train %>%
@@ -372,6 +374,7 @@ has_man <- data_train %>%
 
 lm_trump_quad <- lm(pct_mask~pct_trump_2020 + I(pct_trump_2020^2), data = has_man)
 lm_trump_quad_mandate <- lm(pct_mask~pct_trump_2020 + I(pct_trump_2020^2) + county_mandate, data = has_man)
+
 anova(lm_trump_quad, lm_trump_quad_mandate)
 summary(lm_trump_quad_mandate)
 
@@ -379,8 +382,21 @@ lm_trump_quad_mandate_interact <- lm(pct_mask~pct_trump_2020 + I(pct_trump_2020^
                        pct_trump_2020*county_mandate + 
                        I(pct_trump_2020^2)*county_mandate, 
            data = has_man)
+
 ```
-In order to consider whether the relationship between mandates and mask-wearing varied based on partisanship, we considered adding an interaction term between these two variables. The addition of this term was not significant  in an ESS-F test ($F_2$ =  1.5243, p = 0.218), suggesting that the relationship between mask mandates and mask-wearing behavior does not vary based on partisanship. 
+\begin{table}[ht]
+\centering
+\begin{tabular}{lrrrrrr}
+  \hline
+ & Res.Df & RSS & Df & Sum of Sq & F & Pr($>$F) \\ 
+  \hline
+1 & 2404 & 179670.93 &  &  &  &  \\ 
+  2 & 2403 & 156980.63 & 1 & 22690.31 & 347.33 & 0.0000 \\ 
+   \hline
+\end{tabular}
+\end{table}
+
+In order to consider whether the relationship between mandates and mask-wearing varied based on partisanship, we considered adding an interaction term between these two variables (`lm_trump_quad_mandate_interact`). The addition of this term was not significant  in an ESS-F test ($F_2$ =  1.5243, p = 0.218), suggesting that the relationship between mask mandates and mask-wearing behavior does not vary based on partisanship. 
 
 ```{r include = F}
 anova(lm_trump_quad_mandate, lm_trump_quad_mandate_interact)
@@ -428,7 +444,7 @@ ci.boot
 
 **Future COVID-19 Spread and Mask Wearing Behavior**
 
-Thus far, we have concentrated our efforts on exploring what variables contribute to mask-wearing behavior as measured by the NYT survey, with underlying idea that mask-wearing behavior is a useful thing to know about because it directly impacts the spread of the pandemic. As a final exploration in our project, we wanted to put this claim to the test and investigate whether mask wearing behavior as measured by a survey in July could provide any predictive power in determining COVID-19 case rates in a county in December. While the link between masks and COVID-19 is causal (i.e. wearing a mask directly increases or reduces your chances of obtaining the virus), this is in no way a causal modelz, as behaviors may have changed greatly within the past 6 months and we are dealing with observational data to begin with. Rather, we intend to treat $mask_{pct}$ as a proxy for the "carefulness" of a county, as measured early in the pandemic. 
+Thus far, we have concentrated our efforts on exploring what variables contribute to mask-wearing behavior as measured by the NYT survey, with underlying idea that mask-wearing behavior is a useful thing to know about because it directly impacts the spread of the pandemic. As a final exploration in our project, we wanted to put this claim to the test and investigate whether mask wearing behavior as measured by a survey in July could provide any predictive power in determining COVID-19 case rates in a county in December. While the link between masks and COVID-19 is causal (i.e. wearing a mask directly increases or reduces your chances of obtaining the virus), this is in no way a causal model, as behaviors may have changed greatly within the past 6 months and we are dealing with observational data to begin with. Rather, we intend to treat $mask_{pct}$ as a proxy for the "carefulness" of a county, as measured early in the pandemic. 
 
 As expected the current case rate is quite right-skewed; most counties have between 0 and 10,000 cases per 100,000 residents, but some counties have as many as 20,000 cases per 100,000 residents. For this reason, we log transformed case_rate_december, our y variable for this investigation. An initial plot of the transformed case rate variable against $mask_pct$ shows a weak negative association, albeit with many influential points, as there seemed to be several counties with very high mask-wearing scores that had an especially low case rate in December. 
 
@@ -442,7 +458,7 @@ ggplot(data_train, aes(x = pct_mask, y = log_case_rate_december)) +
   theme_bw()
 ```
 
-However, rather than fitting an OLS model straightaway, we decided to begin with a mixed effects model to predict cases by state using random intercepts. This is because different states have enacted different policies (i.e. shutdowns, prevalence/availability of tests, etc.) that could help explain differing numbers in current cases. We also considered adding density to this initial model (as one would hypothesize that more people coming into contact with one another more frequently would predict the spread of the virus), but decided not to, as it did not add any predictive power with the ESS F Test. As illustrated by the boxplots below, while urban counties had far higher case rates than rural counties back in July, now in December, the case rates have more or less evened out and population density is no longer a useful predictor of what counties will have higher rates of spread.
+However, rather than fitting an OLS model straightaway, we decided to begin with a mixed effects model to predict cases by state using random intercepts. This is because different states have enacted different policies (i.e. shutdowns, prevalence/availability of tests, etc.) that could help explain differing numbers in current cases. We also considered adding density to this initial model (as one would hypothesize that more people coming into contact with one another more frequently would predict the spread of the virus), but decided not to, as it did not add any predictive power with the ESS F Test. This was surprising, as density was a significant an important predictor in our earlier models for `pct_mask` as measured in July—what had changed? As illustrated by the boxplots below, while urban counties had far higher case rates than rural counties back in July, now in December, the case rates have more or less evened out and population density is no longer a useful predictor of what counties will have higher rates of spread.
 
 \hfill
 
@@ -482,7 +498,7 @@ summary(lmer_state_mask)
 
 anova(lmer_state_mask, lmer_state)
 ```
-Based on this model, the average case rate among states is estimated to be 3,603.785 per 100,000 residents. Next, we fit another random intercepts model which included pct_mask as a fixed effect; in this model, on average, the an additional 1 percent in mask wearing within a county in July was associated with an increase of about 1 person (exp(-0.003855)) in the case rate per 100,000 people. This result, while quite small in magnitude, added significant explanatory power to the model ($\chi_1^2$ = 11.393, p = 0.0007 < 0.05); it also held when we calculated the RMSE for our two models on test data. This suggests that how careful a county was about wearing masks in July is an important predictor for case rates in December even after controlling for statewide differences, suggesting that fostering cultures of county-wide mask wearing should be a priority.
+Based on this model, the average case rate among states is estimated to be 3,603.785 per 100,000 residents. Next, we fit another random intercepts model which included pct_mask as a fixed effect; in this model, on average, the an additional 1 percent in mask wearing within a county in July was associated with an increase of about 1 person $(e^{(-0.003855)})$ in the case rate per 100,000 people. This result, while quite small in magnitude, added significant explanatory power to the model ($\chi_1^2 = 11.393$, $p = 0.0007 < 0.05$); it also held when we calculated the RMSE for our two models on test data. This suggests that how careful a county was about wearing masks in July is an important predictor for case rates in December even after controlling for statewide differences, suggesting that fostering cultures of county-wide mask wearing should be a priority.
 
 To conclude this section, we wanted to take a closer look at the counties that this mixed effects model had mis-predicted the most (i.e. the counties with the largest residuals). Counties that had lower rates than their mask wearing score would suggest tended to be small, rural communities in the Southwestern United States; while their success in controlling case rates could simply be due to chance given their small size (there are plenty of small towns that have been unsuccessful, so it could be due to random chance alone), it could be worthwhile to do further research on these counties in order to determine if they instituted any policy strategies at a local level that could be applicable to other scenarios. Likewise, further investigating the counties that comparatively did the worst (which tended to be midsize cities, spread out around the nation) given their mask wearing score could also be an interesting case study about what policy practices were ineffective.
 
@@ -540,7 +556,20 @@ And here were the counties with the most positive residuals (indicating COVID-19
 \end{table}
 
 
-\section{Conclusions}
+\section{Conclusions and Discussion}
+
+Fitting our initial model to predict `pct_mask` from all the main effects, we found that the coefficients of the $\beta$ terms universally supported our various hypothesis, other than the coefficient for `college`, which was negative (albeit with small magnitude). This suggests that the trends in mask wearing behavior that researchers have noted at an individual level likewise hold at a county level and suggests that mask-wearing campaigns specifically focused on younger white people in low-income, low-density areas could be merited. Focusing on the association of `pct_trump_2020` with mask wearing, our evidence supports research claims that partisanship is the single most important predictor of mask wearing, as shown in our variable importance plot for the random forest model. This makes sense, as partisanship directly contributes to rhetoric relating to efficacy of masks in a way that demographic variables do not. However, it is far from the *only* important predictor, as models fitted using solely demographic predictors out-predicted models using only political predictors on both the train and test set. 
+
+Having established the relative importance of partisanship in predicting mask-wearing behavior, we further investigated the relationship between mask mandates and mask wearing behavior. Although Demoocratic counties were far more likely to have a mask mandate at all (in July), there was not an association between political party and the degree of response to a mask mandate. In other words,among the Republican counties that did have mandates, the response was similar to Democratic counties (an increase of about 6% in the prevalence of mask wearing). If there was already a state mandate in place, the addition of a countywide mandate was not predicted to be associated with as large of a bump in mask wearing (about 2% vs. 6% from before), but there was still a significant increase associated with having the two mandates in place. Overall, our findings suggested that county and statewide mandates are associated with meaningful increases in mask-wearing behavior regardless of the politics of the state or county in question.
+
+Armed with a better understanding of which counties were wearing masks in July, we flipped our response `pct_mask` into a predictor in order to determine whether there was an association between mask wearing in July and case rates in December. Although there have been many shifts in the way the country has experienced the virus within the past six months (notably, population density is no longer a significant predictor of COVID-19 case rates the way it was in July), mask-wearing behavior in July still provided explanatory in power when added to a model to predict December case rates from random intercepts based on states. This finding suggests that further research into measures of the "carefulness" of a county, which could extend beyond mask-wearing rates and into to public health messaging, local stay-at-home orders, and business regulations, could be a useful way to predict the rate of COVID-19 spread within counties. 
+
+While we hope our conclusions about mask-wearing and partisanship still have meaningful implications, it is important to recognize that there are many limitations to our data and the type of claims that we can make. First of all, none of our findings should be thought of as causal claims; rather, the fact that significant associations exist between political background, demographic characteristics, and mask wearing should serve as an impetus for further investigation social science researchers. While there *is* a proven causal relationship between mask-wearing and the spread of COVID-19, [numerous scientific experiments](https://msphere.asm.org/content/5/5/e00637-20), our final model that used `pct_mask` to predict case rates in December should not be interpreted as causal. This is due to (1) the extreme lag in time between these two measurements and (2) the fact that this was not an experiment, and that people who wear masks are likely more careful about their social distancing conduct in other ways as well. Finally, our findings are limited due to the nature of using survey data to as our response variable, as surveys may suffer from undercoverage or response bias. One interesting extension to this project would be to collect data about the actual prevalence of mask wearing (as measured by manually taking and recording observations at a public location, as [these researchers in Hong Kong](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7177146/) did) and seeing how this number compares to the self-reported frequency of mask-wearing in various US counties. This would help give a more realistic understanding of the relationship between mask-wearing and the spread of COVID-19 at a county level. 
+
 
 \newpage
 \section{Bibliography}
+
+https://msphere.asm.org/content/5/5/e00637-20
+
+
