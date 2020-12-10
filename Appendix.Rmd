@@ -253,6 +253,14 @@ apolitical = lm(pct_mask ~ (pop_2019 + log_pct_seniors + ru_continuum + log_pct_
 
 ```
 
+Summary of Full Model
+```{r echo = F}
+
+summary(fullmodel)
+
+```
+
+
 Interaction Model Assumptions Checks:
 ```{r model diag, out.width = '50%', out.height = '50%', echo = FALSE}
 

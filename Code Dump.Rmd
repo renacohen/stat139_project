@@ -1,6 +1,6 @@
 ---
 title: "Code Dump"
-author: "Rena Cohen"
+author: "Rena Cohen and Chloe Shawah"
 date: "12/9/2020"
 output:
   pdf_document: default
@@ -319,7 +319,9 @@ plot(pct_mask ~ log_density, data = mask_train,
         ylab = "Mask-Wearing Score")
 points(7.291, 90.025, pch = 23, bg = "#EE9988", cex = 2)
 points(5.64, 91.1, pch = 23, bg = "#77AADD", cex = 2)
-legend("bottomright", legend = c("Chloe's County", "Rena's County"), pt.bg = c("#EE9988", "#77AADD"), pch = c(23, 23), pt.cex = c(1.5,1.5), cex = 1, inset=.04,)
+legend("bottomright", legend = c("Chloe's County", "Rena's County"), 
+       pt.bg = c("#EE9988", "#77AADD"), pch = c(23, 23), pt.cex = c(1.5,1.5), 
+       cex = 1, inset=.04,)
 
 plot(pct_mask ~ pct_trump_2020, data = mask_train,
         main = "Mask Wearing by Percent for Trump",
@@ -327,7 +329,9 @@ plot(pct_mask ~ pct_trump_2020, data = mask_train,
         ylab = "Mask-Wearing Score")
 points(35.97, 90.025, pch = 23, bg = "#EE9988", cex = 2)
 points(35.64, 91.1, pch = 23, bg = "#77AADD", cex = 2)
-legend("bottomleft", legend = c("Chloe's County", "Rena's County"), pt.bg = c("#EE9988", "#77AADD"), pch = c(23, 23), pt.cex = c(1.5,1.5), cex = 1, inset=.04,)
+legend("bottomleft", legend = c("Chloe's County", "Rena's County"), 
+       pt.bg = c("#EE9988", "#77AADD"), pch = c(23, 23), pt.cex = c(1.5,1.5), 
+       cex = 1, inset=.04,)
 
 
 plot(pct_mask ~ log_pct_seniors, data = mask_train,
@@ -400,7 +404,8 @@ fullmodel = lm(pct_mask ~ pop_2019 + log_pct_seniors +
 interactionmodel = lm(pct_mask ~ (pop_2019 + log_pct_seniors +
                                     ru_continuum + pct_trump_2020 + 
                                     log_pct_minority + dem_governor + 
-                                    pct_anycollege + log_density + pct_female + log_pct_poverty)^2,
+                                    pct_anycollege + log_density + pct_female + 
+                                    log_pct_poverty)^2,
                data = mask_train)
 
 # Backwards forwards step from main effects to interaction terms
@@ -416,7 +421,9 @@ plot(fullmodel, which = 2)
 
 # Fitting a random forest model
 
-rf1 = randomForest(pct_mask ~ pop_2019 + log_pct_seniors + ru_continuum + pct_trump_2020 + log_pct_minority + dem_governor + pct_anycollege + log_density + pct_female + log_pct_poverty,
+rf1 = randomForest(pct_mask ~ pop_2019 + log_pct_seniors + ru_continuum + 
+                     pct_trump_2020 + log_pct_minority + dem_governor + 
+                     pct_anycollege + log_density + pct_female + log_pct_poverty,
                data = mask_clean, mtry = 6, maxnodes=10)
 
 # Creating variance important part
@@ -429,7 +436,8 @@ dt2= rpart(pct_mask ~ pct_trump_2020 + dem_governor,
 # Creating another random forest model with apolitical predictors
 
 rf3 = randomForest(pct_mask ~ pop_2019 + log_pct_seniors + ru_continuum + 
-                     log_pct_minority + pct_anycollege + log_density + pct_female + log_pct_poverty,
+                     log_pct_minority + pct_anycollege + log_density + 
+                     pct_female + log_pct_poverty,
                data = mask_clean, mtry = 6, maxnodes=10)
 
 # Building an RMSE function
@@ -470,12 +478,16 @@ fullmodel_test = round(RMSE(test_clean$pct_mask,
                             predict(fullmodel, new=test_clean)), 3)
 
 interactionmodel_train = round(RMSE(train_clean$pct_mask, 
-                                    predict(interactionmodel, new=train_clean)), 3)
+                                    predict(interactionmodel, 
+                                            new=train_clean)), 3)
 interactionmodel_test = round(RMSE(test_clean$pct_mask,
-                                   predict(interactionmodel, new=test_clean)), 3)
+                                   predict(interactionmodel, 
+                                           new=test_clean)), 3)
 
-selectedmodel_train = round(RMSE(train_clean$pct_mask, predict(selectedmodel, new=train_clean)), 3)
-selectedmodel_test = round(RMSE(test_clean$pct_mask, predict(selectedmodel, new=test_clean)), 3)
+selectedmodel_train = round(RMSE(train_clean$pct_mask, predict(selectedmodel, 
+                                                               new=train_clean)), 3)
+selectedmodel_test = round(RMSE(test_clean$pct_mask, predict(selectedmodel, 
+                                                             new=test_clean)), 3)
 
 
 ```
@@ -495,7 +507,8 @@ phat = exp(yhat)/(1+exp(yhat))
 
 # Making a plot 
 
-plot(county_mandate~pct_trump_2020, data = data_train, cex = 0.5, pch = 16, col = rgb(0.2,0.2,0.2,0.1), ylab = "Odds of a Countwide Mandate",
+plot(county_mandate~pct_trump_2020, data = data_train, cex = 0.5, 
+     pch = 16, col = rgb(0.2,0.2,0.2,0.1), ylab = "Odds of a Countwide Mandate",
      xlab = "Percent Trump Votes, 2020", 
      main = "Mandate Odds vs. Partisanship")
 lines(phat~dummy.pct, col = "dodgerblue", lwd = 2)
@@ -533,7 +546,8 @@ anova(lm_trump_quad_mandate, lm_trump_quad_mandate_interact)
 
 # Adding a term for state mandates
 
-lm_trump_state <- lm(pct_mask~ pct_trump_2020 + I(pct_trump_2020^2) + state_mandate +  county_mandate, data = has_man)
+lm_trump_state <- lm(pct_mask~ pct_trump_2020 + I(pct_trump_2020^2) + 
+                       state_mandate +  county_mandate, data = has_man)
 summary(lm_trump_state)
 
 # State coefficient is significant
