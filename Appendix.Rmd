@@ -9,13 +9,13 @@ output:
 
 ```{r include = F}
 # loading libraries
-library(caret)
+#library(caret)
 library(gt)
 library(lme4)
 library(ggplot2)
 library(tidyverse)
 library(xtable)
-data_train <- readRDS("~/Desktop/STAT 139/stat139_project/data_train.RDS")
+data_train <- readRDS("data_train.RDS")
 ```
 \section{Data Cleaning and Compilation Process}
 
@@ -118,7 +118,174 @@ t.test(just_na$log_pct_minority, full$log_pct_minority)
 t.test(just_na$log_pct_poverty, full$log_pct_poverty)
 ```
 
+\section{Exploratory Data Analysis}
+
+Distribution of Response Variable:
+
+```{r Mask-wearing hist, out.width = '50%', out.height = '50%', echo = FALSE}
+
+mask_train = readRDS("data_train.RDS")
+
+hist(mask_train$pct_mask,
+     main = "Histogram of Mask-Wearing Score",
+     xlab = "Mask-Wearing Score",
+     ylab = "Number of Counties")
+
+```
+
+Distributions of Predictors with Necessary Tranformations:
+
+```{r Density, out.width = '50%', out.height = '50%', echo = FALSE}
+
+
+hist(mask_train$log_density,
+     main = "Histogram of log(Density)",
+     xlab = "log(Density)",
+     ylab = "Number of Counties")
+
+plot(pct_mask ~ log_density, data = mask_train,
+        main = "Mask Wearing by log(Density)",
+        xlab = "log(Density)",
+        ylab = "Mask-Wearing Score")
+
+```
+
+```{r RU Score, out.width = '50%', out.height = '50%', echo = FALSE}
+
+hist(mask_train$ru_continuum,
+     breaks = 1:10,
+     ylim = c(0,900),
+     xlim = c(1,10),
+     main = "Histogram of Rural-Urban Continuum Score",
+     xlab = "RU Score",
+     ylab = "Number of Counties")
+
+boxplot(pct_mask ~ ru_continuum, mask_train,
+        main = "Mask Wearing by Rural-Urban Continuum Score",
+        xlab = "RU Score",
+        ylab = "Mask-Wearing Score")
+
+```
+
+```{r Percent College, out.width = '50%', out.height = '50%', echo = FALSE}
+
+hist(mask_train$pct_anycollege,
+     main = "Histogram of anyCollege",
+     xlab = "anyCollege",
+     ylab = "Number of Counties")
+
+plot(pct_mask ~ pct_anycollege, data = mask_train,
+        main = "Mask Wearing by anyCollege",
+        xlab = "anyCollege",
+        ylab = "Mask-Wearing Score")
+
+```
+
+```{r Trump 2016, out.width = '50%', out.height = '50%', echo = FALSE}
+
+hist(mask_train$pct_trump_2020,
+     main = "Histogram of Percent Voted for Trump 2016 (untransformed)",
+     xlab = "Percent Trump 2016",
+     ylab = "Number of Counties")
+
+plot(pct_mask ~ pct_trump_2020, data = mask_train,
+        main = "Mask Wearing by pct_Trump_2020",
+        xlab = "Trump 2020",
+        ylab = "Mask-Wearing Score")
+
+```
+
+```{r, out.width = '50%', out.height = '50%', echo = FALSE}
+
+hist(mask_train$log_pct_minority,
+     main = "Histogram of log(Minority)",
+     xlab = "log(Minority)",
+     ylab = "Number of Counties")
+
+plot(pct_mask ~ log_pct_minority, 
+     data = mask_train,
+      main = "Mask Wearing by log(Minority)",
+      xlab = "log(Minority)",
+      ylab = "Mask-Wearing Score")
+
+```
+
+``` {r Dem Governor, out.width = '50%', out.height = '50%', echo = FALSE}
+
+boxplot(pct_mask ~ dem_governor, data = mask_train,
+        main = "Mask Wearing by Democratic Governor",
+        xlab = "Democratic Governor",
+        ylab = "Mask-Wearing Score")
+
+```
+
 \section{Models and Diagnostic Plots}
+
+**Section 1: Is Mask-wearing Political?**
+
+Coefficient Comparison between `linear full model` and `linear selected model`:
+```{r, echo = F, results = "asis"}
+
+interceptmodel = lm(pct_mask ~ 1, data = mask_train)
+
+fullmodel = lm(pct_mask ~ pop_2019 + log_pct_seniors + ru_continuum + pct_trump_2020 + log_pct_minority + dem_governor + pct_anycollege + log_density + pct_female + log_pct_poverty,
+               data = mask_train)
+
+interactionmodel = lm(pct_mask ~ (pop_2019 + log_pct_seniors + ru_continuum + pct_trump_2020 + log_pct_minority + dem_governor + pct_anycollege + log_density + pct_female + log_pct_poverty)^2,
+               data = mask_train)
+
+selectedmodel = step(fullmodel, scope = list(lower = formula(interceptmodel), upper = formula(interactionmodel)),
+     direction = "both", trace = 0)
+
+single = as.data.frame(coefficients(fullmodel))[,1][2:11]
+selected = as.data.frame(coefficients(selectedmodel))[,1][2:11]
+names = all.vars(formula(fullmodel))[2:11]
+
+coefs_comp = as.data.frame(cbind(names, round(single, 5), round(selected, 5)))
+names(coefs_comp) = c("Predictor", "Full Model", "Interaction Model")
+
+coef_table = xtable(coefs_comp)
+print(coef_table, comment = FALSE, include.rownames = FALSE)
+
+political = lm(pct_mask ~ (pct_trump_2020 + dem_governor)^2, data = mask_train)
+
+apolitical = lm(pct_mask ~ (pop_2019 + log_pct_seniors + ru_continuum + log_pct_minority + pct_anycollege + log_density + pct_female + log_pct_poverty)^2, data = mask_train)
+
+```
+
+Interaction Model Assumptions Checks:
+```{r model diag, out.width = '50%', out.height = '50%', echo = FALSE}
+
+plot(interactionmodel, which = 1)
+plot(interactionmodel, which = 2)
+
+```
+
+Selected Model Assumption Checks:
+```{r out.width = '50%', out.height = '50%', echo = FALSE}
+
+plot(selectedmodel, which = 1)
+plot(selectedmodel, which = 2)
+
+```
+
+Political Model Assumption Checks:
+```{r out.width = '50%', out.height = '50%', echo = FALSE}
+
+plot(political, which = 1)
+plot(political, which = 2)
+
+```
+
+Apolitical Model Assumption Checks:
+```{r out.width = '50%', out.height = '50%', echo = FALSE}
+
+plot(apolitical, which = 1)
+plot(apolitical, which = 2)
+
+```
+
+
 
 **Section 2: Mask Mandate Models and Diagnostics**
 
@@ -127,7 +294,7 @@ Here is the summary and output for our logistic model (called `logit_1`)
 ```{r echo = F}
 # Running logistic regression
 
-data_train = readRDS("~/Desktop/STAT 139/stat139_project/data_train.RDS")
+data_train = readRDS("data_train.RDS")
 logit_1 = glm(county_mandate~pct_trump_2020, data = data_train, family = "binomial")
 summary(logit_1)
 ```
@@ -276,7 +443,7 @@ RMSE = function(model, newdata, y){
   RMSE = sqrt(sum((y-yhat)^2/nrow(newdata)))
   return(RMSE)
 }
-data_test <- readRDS("~/Desktop/STAT 139/stat139_project/data_test.RDS")
+data_test <- readRDS("data_test.RDS")
 RMSE(lmer_state_mask, data_test, data_test$log_case_rate_december)
 RMSE(lmer_state, data_test, data_test$log_case_rate_december)
 ```
