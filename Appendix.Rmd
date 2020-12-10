@@ -229,7 +229,8 @@ lmer_state_density <- lmer(log_case_rate_december~
                      (1|state) + log_density,
                    data = data_train, REML = F)
 
-lmer_state_mask <- lmer(log_case_rate_december~pct_mask + (1|state), data = data_train, REML = F)
+lmer_state_mask <- lmer(log_case_rate_december~pct_mask + (1|state), 
+                        data = data_train, REML = F)
 summary(lmer_state_mask)
 
 anova(lmer_state_mask, lmer_state)

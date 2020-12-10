@@ -186,13 +186,20 @@ First, we will run 3 models with these two categories of predictors *combined* t
 
 interceptmodel = lm(pct_mask ~ 1, data = mask_train)
 
-fullmodel = lm(pct_mask ~ pop_2019 + log_pct_seniors + ru_continuum + pct_trump_2020 + log_pct_minority + dem_governor + pct_anycollege + log_density + pct_female + log_pct_poverty,
+fullmodel = lm(pct_mask ~ pop_2019 + log_pct_seniors +
+                 ru_continuum + pct_trump_2020 + 
+                 log_pct_minority + dem_governor + pct_anycollege + 
+                 log_density + pct_female + log_pct_poverty,
                data = mask_train)
 
-interactionmodel = lm(pct_mask ~ (pop_2019 + log_pct_seniors + ru_continuum + pct_trump_2020 + log_pct_minority + dem_governor + pct_anycollege + log_density + pct_female + log_pct_poverty)^2,
+interactionmodel = lm(pct_mask ~ (pop_2019 + log_pct_seniors +
+                                    ru_continuum + pct_trump_2020 + 
+                                    log_pct_minority + dem_governor + 
+                                    pct_anycollege + log_density + pct_female + log_pct_poverty)^2,
                data = mask_train)
 
-selectedmodel = step(fullmodel, scope = list(lower = formula(interceptmodel), upper = formula(interactionmodel)),
+selectedmodel = step(fullmodel, scope = list(lower = formula(interceptmodel), 
+                                             upper = formula(interactionmodel)),
      direction = "both", trace = 0)
 
 ```

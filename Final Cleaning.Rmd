@@ -121,7 +121,6 @@ ids <- sample(1:nrow(data_complete), round(0.8*nrow(data_complete)), replace = F
 data_train <- data_complete[ids,]
 data_test <- data_complete[-ids,]
 
-head(ids)
 
 # Saving everything as an RDS
 
