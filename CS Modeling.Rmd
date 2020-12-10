@@ -98,7 +98,10 @@ Next, we will fit two more models:
 
 political = lm(pct_mask ~ (pct_trump_2020 + dem_governor)^2, data = mask_train)
 
-apolitical = lm(pct_mask ~ (pop_2019 + log_pct_seniors + ru_continuum + log_pct_minority + pct_anycollege + log_density + pct_female + log_pct_poverty)^2, data = mask_train)
+apolitical = lm(pct_mask ~ (pop_2019 + log_pct_seniors + 
+                              ru_continuum + log_pct_minority + 
+                              pct_anycollege + log_density + pct_female + 
+                              log_pct_poverty)^2, data = mask_train)
 
 ```
 \begin{table}[ht]
